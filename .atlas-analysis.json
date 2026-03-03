@@ -1,0 +1,166 @@
+{
+  "projectType": "frontend",
+  "projectName": "React Data Grid",
+  "projectDescription": "Feature-rich and customizable data grid React component with virtualization, TypeScript support, and zero dependencies.",
+  "theme": "palm",
+  "primaryColor": "#0066cc",
+  "lightColor": "#3399ff",
+  "darkColor": "#003d7a",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "core-concepts/columns",
+              "core-concepts/rows",
+              "core-concepts/selection",
+              "core-concepts/sorting",
+              "core-concepts/editing"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/virtualization",
+              "features/column-resizing",
+              "features/column-grouping",
+              "features/frozen-columns",
+              "features/row-grouping",
+              "features/summary-rows",
+              "features/cell-spanning",
+              "features/copy-paste",
+              "features/keyboard-navigation"
+            ]
+          },
+          {
+            "group": "Styling",
+            "pages": [
+              "styling/theming",
+              "styling/css-variables",
+              "styling/custom-classes"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "advanced/custom-renderers",
+              "advanced/performance",
+              "advanced/accessibility",
+              "advanced/rtl-support"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Components",
+            "pages": [
+              "api/datagrid",
+              "api/treedatagrid",
+              "api/row",
+              "api/cell",
+              "api/select-cell-formatter"
+            ]
+          },
+          {
+            "group": "Hooks",
+            "pages": [
+              "api/use-row-selection",
+              "api/use-header-row-selection"
+            ]
+          },
+          {
+            "group": "Renderers",
+            "pages": [
+              "api/render-header-cell",
+              "api/render-text-editor",
+              "api/render-checkbox",
+              "api/render-sort-icon",
+              "api/render-toggle-group",
+              "api/render-value"
+            ]
+          },
+          {
+            "group": "Types",
+            "pages": [
+              "api/types/column",
+              "api/types/render-props",
+              "api/types/events",
+              "api/types/utilities"
+            ]
+          },
+          {
+            "group": "Exports",
+            "pages": [
+              "api/select-column",
+              "api/context"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Virtualization for large datasets",
+    "TypeScript support with strict typing",
+    "Zero external dependencies",
+    "Column resizing, sorting, and grouping",
+    "Row selection and editing",
+    "Frozen columns",
+    "Tree grid with row grouping",
+    "Summary rows (top and bottom)",
+    "Cell spanning and custom renderers",
+    "Keyboard navigation and accessibility",
+    "Light and dark mode support",
+    "RTL support",
+    "Copy/paste and fill operations",
+    "Variable row heights",
+    "Server-side rendering support"
+  ],
+  "publicApiSurface": [
+    "DataGrid",
+    "TreeDataGrid",
+    "Row",
+    "Cell",
+    "SelectCellFormatter",
+    "SelectColumn",
+    "useRowSelection",
+    "useHeaderRowSelection",
+    "renderHeaderCell",
+    "renderTextEditor",
+    "renderCheckbox",
+    "renderSortIcon",
+    "renderSortPriority",
+    "renderToggleGroup",
+    "renderValue",
+    "DataGridDefaultRenderersContext",
+    "Column",
+    "ColumnGroup",
+    "CalculatedColumn",
+    "RenderCellProps",
+    "RenderHeaderCellProps",
+    "RenderEditCellProps",
+    "RenderSummaryCellProps",
+    "RenderGroupCellProps",
+    "RenderRowProps",
+    "CellRendererProps",
+    "Renderers",
+    "SortColumn",
+    "SortDirection",
+    "FillEvent",
+    "RowsChangeData"
+  ]
+}
