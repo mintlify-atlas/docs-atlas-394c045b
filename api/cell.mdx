@@ -1,0 +1,196 @@
+---
+title: Cell
+description: Default cell component for rendering individual grid cells
+---
+
+## Overview
+
+The default cell component used by `DataGrid`. Can be wrapped via the `renderers.renderCell` prop to add custom behavior while preserving default cell functionality.
+
+```tsx
+import { DataGrid, type CellRendererProps } from 'react-data-grid';
+
+function CustomCell({ column, row, ...props }: CellRendererProps<MyRow, unknown>) {
+  return (
+    <div className="custom-cell" {...props}>
+      <span className="cell-value">{row[column.key]}</span>
+    </div>
+  );
+}
+
+function MyGrid() {
+  return (
+    <DataGrid
+      renderers={{
+        renderCell: (key, props) => <CustomCell key={key} {...props} />
+      }}
+      columns={columns}
+      rows={rows}
+    />
+  );
+}
+```
+
+## Props
+
+The Cell component accepts `CellRendererProps<TRow, TSummaryRow>`:
+
+<ParamField path="column" type="CalculatedColumn<TRow, TSummaryRow>" required>
+  The column configuration object with all calculated properties.
+</ParamField>
+
+<ParamField path="row" type="TRow" required>
+  The row data object.
+</ParamField>
+
+<ParamField path="rowIdx" type="number" required>
+  Index of the row in the rows array.
+</ParamField>
+
+<ParamField path="colSpan" type="number | undefined" required>
+  Number of columns this cell should span, or `undefined` for no spanning.
+</ParamField>
+
+<ParamField path="isDraggedOver" type="boolean" required>
+  Whether this cell is currently being dragged over during fill operations.
+</ParamField>
+
+<ParamField path="isCellSelected" type="boolean" required>
+  Whether this cell is currently selected.
+</ParamField>
+
+<ParamField path="onRowChange" type="(column: CalculatedColumn<TRow, TSummaryRow>, newRow: TRow) => void" required>
+  Callback to update the row data from this cell.
+</ParamField>
+
+<ParamField path="selectCell" type="(position: Position, options?: SelectCellOptions) => void" required>
+  Function to programmatically select a cell.
+</ParamField>
+
+<ParamField path="onCellMouseDown" type="CellMouseEventHandler<TRow, TSummaryRow>" required>
+  Callback triggered when a pointer becomes active in the cell.
+</ParamField>
+
+<ParamField path="onCellClick" type="CellMouseEventHandler<TRow, TSummaryRow>" required>
+  Callback triggered when the cell is clicked.
+</ParamField>
+
+<ParamField path="onCellDoubleClick" type="CellMouseEventHandler<TRow, TSummaryRow>" required>
+  Callback triggered when the cell is double-clicked.
+</ParamField>
+
+<ParamField path="onCellContextMenu" type="CellMouseEventHandler<TRow, TSummaryRow>" required>
+  Callback triggered when the cell is right-clicked.
+</ParamField>
+
+## Custom Cell Content
+
+For custom cell content without replacing the entire cell component, use the `renderCell` property on column definitions:
+
+```tsx
+import type { Column, RenderCellProps } from 'react-data-grid';
+
+function ImageCell({ row }: RenderCellProps<MyRow>) {
+  return (
+    <div className="image-cell">
+      <img src={row.imageUrl} alt={row.name} />
+      <span>{row.name}</span>
+    </div>
+  );
+}
+
+const columns: Column<MyRow>[] = [
+  {
+    key: 'name',
+    name: 'Name',
+    renderCell: ImageCell
+  }
+];
+```
+
+## Editable Cells
+
+For editable cells, use the `renderEditCell` property on column definitions:
+
+```tsx
+import type { Column, RenderEditCellProps } from 'react-data-grid';
+
+function TextEditor({ row, column, onRowChange, onClose }: RenderEditCellProps<MyRow>) {
+  return (
+    <input
+      autoFocus
+      value={row[column.key]}
+      onChange={(event) => onRowChange({ ...row, [column.key]: event.target.value })}
+      onBlur={() => onClose(true)}
+    />
+  );
+}
+
+const columns: Column<MyRow>[] = [
+  {
+    key: 'name',
+    name: 'Name',
+    renderEditCell: TextEditor
+  }
+];
+```
+
+## Cell Styling
+
+Apply custom CSS classes to cells using the `cellClass` property:
+
+```tsx
+const columns: Column<MyRow>[] = [
+  {
+    key: 'status',
+    name: 'Status',
+    cellClass: (row) => `status-${row.status}`
+  },
+  {
+    key: 'price',
+    name: 'Price',
+    cellClass: 'text-right' // Static class
+  }
+];
+```
+
+```css
+.status-active {
+  color: green;
+  font-weight: bold;
+}
+
+.status-inactive {
+  color: grey;
+}
+
+.text-right {
+  text-align: right;
+}
+```
+
+## Column Spanning
+
+Cells can span multiple columns using the `colSpan` property:
+
+```tsx
+import type { Column, ColSpanArgs } from 'react-data-grid';
+
+const columns: readonly Column<Row>[] = [
+  {
+    key: 'title',
+    name: 'Title',
+    colSpan(args: ColSpanArgs<Row, unknown>) {
+      if (args.type === 'ROW' && args.row.isFullWidth) {
+        return 5; // Span 5 columns for full-width rows
+      }
+      return undefined;
+    }
+  }
+];
+```
+
+## Generics
+
+- `TRow` - Row type
+- `TSummaryRow` - Summary row type (default: `unknown`)

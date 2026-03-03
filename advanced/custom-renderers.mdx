@@ -1,0 +1,439 @@
+---
+title: Custom Renderers
+description: Customize cells, rows, and components with custom renderers
+---
+
+## Overview
+
+React Data Grid provides powerful customization through custom renderers. You can replace default components for cells, rows, checkboxes, sort indicators, and empty states.
+
+## Renderers Type
+
+The `Renderers` type defines all available custom renderer options:
+
+```tsx
+interface Renderers<TRow, TSummaryRow> {
+  renderCell?: Maybe<(key: Key, props: CellRendererProps<TRow, TSummaryRow>) => ReactNode>;
+  renderCheckbox?: Maybe<(props: RenderCheckboxProps) => ReactNode>;
+  renderRow?: Maybe<(key: Key, props: RenderRowProps<TRow, TSummaryRow>) => ReactNode>;
+  renderSortStatus?: Maybe<(props: RenderSortStatusProps) => ReactNode>;
+  noRowsFallback?: Maybe<ReactNode>;
+}
+```
+
+## Cell Renderers
+
+### Custom Cell Renderer
+
+Replace the default cell component with a custom implementation:
+
+```tsx
+import { DataGrid, type CellRendererProps } from 'react-data-grid';
+
+function CustomCell({ column, row, colSpan, ...props }: CellRendererProps<Row, SummaryRow>) {
+  return (
+    <div
+      {...props}
+      style={{
+        ...props.style,
+        backgroundColor: row.isHighlighted ? 'yellow' : undefined
+      }}
+    >
+      {/* Custom cell content */}
+    </div>
+  );
+}
+
+function MyGrid() {
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      renderers={{
+        renderCell(key, props) {
+          return <CustomCell key={key} {...props} />;
+        }
+      }}
+    />
+  );
+}
+```
+
+### Column Cell Renderer
+
+Customize rendering for specific columns using `renderCell`:
+
+```tsx
+import type { RenderCellProps, Column } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  name: string;
+  status: 'active' | 'inactive';
+}
+
+function StatusCell({ row, column, onRowChange }: RenderCellProps<Row>) {
+  return (
+    <div style={{ color: row.status === 'active' ? 'green' : 'gray' }}>
+      {row[column.key]}
+      <button onClick={() => onRowChange({ ...row, status: 'active' })}>Activate</button>
+    </div>
+  );
+}
+
+const columns: readonly Column<Row>[] = [
+  { key: 'id', name: 'ID' },
+  { key: 'name', name: 'Name' },
+  {
+    key: 'status',
+    name: 'Status',
+    renderCell: StatusCell
+  }
+];
+```
+
+<Note>
+  Column-level `renderCell` is typically preferred over grid-level `renderCell` for better maintainability.
+</Note>
+
+## Row Renderers
+
+### Wrapping Default Row
+
+Wrap the default `Row` component to add context or modify props:
+
+```tsx
+import { DataGrid, Row, type RenderRowProps } from 'react-data-grid';
+
+interface MyRow {
+  id: number;
+  name: string;
+}
+
+function myRowRenderer(key: React.Key, props: RenderRowProps<MyRow>) {
+  return (
+    <MyContext key={key} value={props.row.id}>
+      <Row {...props} />
+    </MyContext>
+  );
+}
+
+function MyGrid() {
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      renderers={{ renderRow: myRowRenderer }}
+    />
+  );
+}
+```
+
+### Custom Row Component
+
+Create a completely custom row implementation:
+
+```tsx
+import type { RenderRowProps } from 'react-data-grid';
+
+function CustomRow({
+  row,
+  viewportColumns,
+  rowIdx,
+  isRowSelected,
+  gridRowStart,
+  ...props
+}: RenderRowProps<Row>) {
+  return (
+    <div
+      role="row"
+      aria-rowindex={props['aria-rowindex']}
+      aria-selected={props['aria-selected']}
+      style={{
+        display: 'contents',
+        '--row-idx': rowIdx
+      } as React.CSSProperties}
+    >
+      {/* Render cells for each column */}
+      {viewportColumns.map((column) => (
+        <div key={column.key} role="gridcell">
+          {row[column.key]}
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+<Warning>
+  When creating custom row components, ensure proper ARIA attributes are maintained for accessibility.
+</Warning>
+
+## Header Cell Renderers
+
+Customize header cells for individual columns:
+
+```tsx
+import { renderHeaderCell, type RenderHeaderCellProps, type Column } from 'react-data-grid';
+
+function CustomHeaderCell({ column, sortDirection, priority }: RenderHeaderCellProps<Row>) {
+  return (
+    <div style={{ fontWeight: 'bold', color: 'blue' }}>
+      {column.name}
+      {sortDirection && ` (${sortDirection})`}
+    </div>
+  );
+}
+
+const columns: readonly Column<Row>[] = [
+  {
+    key: 'name',
+    name: 'Name',
+    sortable: true,
+    renderHeaderCell: CustomHeaderCell
+  }
+];
+```
+
+## Summary Cell Renderers
+
+Render custom content in summary rows:
+
+```tsx
+import type { RenderSummaryCellProps, Column } from 'react-data-grid';
+
+interface SummaryRow {
+  totalCount: number;
+  totalAmount: number;
+}
+
+function TotalCell({ row }: RenderSummaryCellProps<SummaryRow, Row>) {
+  return (
+    <div style={{ fontWeight: 'bold' }}>
+      Total: ${row.totalAmount.toFixed(2)}
+    </div>
+  );
+}
+
+const columns: readonly Column<Row, SummaryRow>[] = [
+  {
+    key: 'amount',
+    name: 'Amount',
+    renderSummaryCell: TotalCell
+  }
+];
+```
+
+## Edit Cell Renderers
+
+Create custom editors for editable cells:
+
+```tsx
+import type { RenderEditCellProps, Column } from 'react-data-grid';
+
+function CustomEditor({ row, column, onRowChange, onClose }: RenderEditCellProps<Row>) {
+  return (
+    <input
+      autoFocus
+      value={row[column.key]}
+      onChange={(event) => onRowChange({ ...row, [column.key]: event.target.value })}
+      onBlur={() => onClose(true)}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          onClose(false);
+        } else if (event.key === 'Enter') {
+          onClose(true);
+        }
+      }}
+    />
+  );
+}
+
+const columns: readonly Column<Row>[] = [
+  {
+    key: 'title',
+    name: 'Title',
+    renderEditCell: CustomEditor
+  }
+];
+```
+
+<Tip>
+  Use the provided `renderTextEditor` for basic text editing: `import { renderTextEditor } from 'react-data-grid'`
+</Tip>
+
+## Group Cell Renderers
+
+Customize group cells in TreeDataGrid:
+
+```tsx
+import { renderToggleGroup, type RenderGroupCellProps, type Column } from 'react-data-grid';
+
+function CustomGroupCell(props: RenderGroupCellProps<Row>) {
+  return (
+    <div>
+      {renderToggleGroup(props)}
+      <span style={{ marginLeft: '8px' }}>
+        {props.groupKey} ({props.childRows.length} items)
+      </span>
+    </div>
+  );
+}
+
+const columns: readonly Column<Row>[] = [
+  {
+    key: 'category',
+    name: 'Category',
+    renderGroupCell: CustomGroupCell
+  }
+];
+```
+
+## Checkbox Renderer
+
+Customize the selection checkbox:
+
+```tsx
+import { DataGrid, renderCheckbox, type RenderCheckboxProps } from 'react-data-grid';
+
+function CustomCheckbox(props: RenderCheckboxProps) {
+  return (
+    <div style={{ padding: '4px' }}>
+      {renderCheckbox({ ...props, 'aria-label': 'Select row' })}
+    </div>
+  );
+}
+
+function MyGrid() {
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      renderers={{
+        renderCheckbox: CustomCheckbox
+      }}
+    />
+  );
+}
+```
+
+## Sort Status Renderer
+
+Customize sort indicators:
+
+```tsx
+import {
+  DataGrid,
+  renderSortIcon,
+  renderSortPriority,
+  type RenderSortStatusProps
+} from 'react-data-grid';
+
+function CustomSortStatus(props: RenderSortStatusProps) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+      {renderSortIcon(props)}
+      {renderSortPriority(props)}
+    </div>
+  );
+}
+
+function MyGrid() {
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      renderers={{
+        renderSortStatus: CustomSortStatus
+      }}
+    />
+  );
+}
+```
+
+## Empty State Renderer
+
+Customize the fallback when there are no rows:
+
+```tsx
+import { DataGrid } from 'react-data-grid';
+
+function MyGrid() {
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      renderers={{
+        noRowsFallback: (
+          <div style={{ textAlign: 'center', padding: '50px' }}>
+            <p>No data available</p>
+            <button onClick={() => loadData()}>Load Data</button>
+          </div>
+        )
+      }}
+    />
+  );
+}
+```
+
+## Default Renderers Context
+
+Provide default renderers for all grids in your application:
+
+```tsx
+import {
+  DataGridDefaultRenderersContext,
+  renderCheckbox,
+  renderSortIcon,
+  renderSortPriority,
+  type Renderers
+} from 'react-data-grid';
+
+const defaultGridRenderers: Renderers<unknown, unknown> = {
+  renderCheckbox,
+  renderSortStatus(props) {
+    return (
+      <>
+        {renderSortIcon(props)}
+        {renderSortPriority(props)}
+      </>
+    );
+  },
+  noRowsFallback: <div>No data</div>
+};
+
+function AppProvider({ children }) {
+  return (
+    <DataGridDefaultRenderersContext value={defaultGridRenderers}>
+      {children}
+    </DataGridDefaultRenderersContext>
+  );
+}
+```
+
+<Note>
+  The context allows you to set defaults without prop-drilling, while individual grid `renderers` props override these defaults.
+</Note>
+
+## Performance Considerations
+
+<Warning>
+  Always memoize custom renderer functions to prevent unnecessary re-renders:
+</Warning>
+
+```tsx
+import { useMemo } from 'react';
+import { DataGrid } from 'react-data-grid';
+
+function MyGrid() {
+  const renderers = useMemo(
+    () => ({
+      renderRow: myRowRenderer,
+      renderCell: myCellRenderer
+    }),
+    [] // Add dependencies if needed
+  );
+
+  return <DataGrid columns={columns} rows={rows} renderers={renderers} />;
+}
+```

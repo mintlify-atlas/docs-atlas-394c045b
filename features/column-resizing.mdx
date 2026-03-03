@@ -1,0 +1,441 @@
+---
+title: Column Resizing
+description: Enable users to resize columns by dragging column borders
+---
+
+Column resizing allows users to adjust column widths by dragging the resize handle on the right edge of column headers.
+
+## Basic Usage
+
+Enable resizing on individual columns:
+
+```tsx
+import { DataGrid, type Column } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  name: string;
+  email: string;
+}
+
+const columns: Column<Row>[] = [
+  { key: 'id', name: 'ID', width: 80 },
+  { key: 'name', name: 'Name', resizable: true },
+  { key: 'email', name: 'Email', resizable: true }
+];
+
+function MyGrid() {
+  return <DataGrid columns={columns} rows={rows} />;
+}
+```
+
+## Enable for All Columns
+
+Use `defaultColumnOptions` to enable resizing for all columns:
+
+```tsx
+function MyGrid() {
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      defaultColumnOptions={{
+        resizable: true
+      }}
+    />
+  );
+}
+```
+
+<Tabs>
+  <Tab title="Individual Columns">
+    ```tsx
+    const columns: Column<Row>[] = [
+      { key: 'id', name: 'ID', resizable: false },
+      { key: 'name', name: 'Name', resizable: true },
+      { key: 'email', name: 'Email', resizable: true }
+    ];
+    ```
+    
+    Control resizing per column. Useful when some columns should have fixed widths.
+  </Tab>
+  
+  <Tab title="All Columns">
+    ```tsx
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      defaultColumnOptions={{ resizable: true }}
+    />
+    ```
+    
+    Enable resizing for all columns at once. Cleaner for most use cases.
+  </Tab>
+</Tabs>
+
+## Column Width Constraints
+
+### Minimum and Maximum Width
+
+Control how small or large columns can be resized:
+
+```tsx
+const columns: Column<Row>[] = [
+  {
+    key: 'id',
+    name: 'ID',
+    width: 80,
+    minWidth: 50,
+    maxWidth: 150,
+    resizable: true
+  },
+  {
+    key: 'name',
+    name: 'Name',
+    width: 200,
+    minWidth: 100,
+    maxWidth: 400,
+    resizable: true
+  }
+];
+```
+
+<Accordion title="Width Property Details">
+  **width**: Initial column width
+  - Can be a number (pixels) or string (CSS value)
+  - Examples: `80`, `'25%'`, `'minmax(100px, max-content)'`
+  - Default: `'auto'` (calculated based on available space)
+  
+  **minWidth**: Minimum column width in pixels
+  - Default: `50`
+  - Prevents columns from becoming too narrow to read
+  
+  **maxWidth**: Maximum column width in pixels
+  - Optional (no default)
+  - Useful for preventing columns from taking too much space
+</Accordion>
+
+### Width Types
+
+```tsx
+const columns: Column<Row>[] = [
+  {
+    key: 'id',
+    name: 'ID',
+    width: 80, // Fixed width in pixels
+    resizable: true
+  },
+  {
+    key: 'name',
+    name: 'Name',
+    width: '30%', // Percentage width
+    minWidth: 100,
+    maxWidth: 400,
+    resizable: true
+  },
+  {
+    key: 'email',
+    name: 'Email',
+    width: 'max-content', // Auto-size to content
+    resizable: true
+  },
+  {
+    key: 'description',
+    name: 'Description',
+    // No width specified - auto-calculated
+    resizable: true
+  }
+];
+```
+
+<Note>
+`max-content` expands the column to show all content, but the grid can only calculate width for visible rows (due to virtualization).
+</Note>
+
+## Controlled Column Widths
+
+Manage column widths in your own state:
+
+```tsx
+import { useState } from 'react';
+import { DataGrid, type ColumnWidths } from 'react-data-grid';
+
+function MyGrid() {
+  const [columnWidths, setColumnWidths] = useState<ColumnWidths>(new Map());
+  
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      columnWidths={columnWidths}
+      onColumnWidthsChange={setColumnWidths}
+    />
+  );
+}
+```
+
+<Accordion title="Resetting Column Widths">
+  Reset widths by clearing the state:
+  
+  ```tsx
+  function MyGrid() {
+    const [columnWidths, setColumnWidths] = useState<ColumnWidths>(new Map());
+    
+    function resetWidths() {
+      setColumnWidths(new Map());
+    }
+    
+    return (
+      <>
+        <button onClick={resetWidths}>Reset Column Widths</button>
+        <DataGrid
+          columns={columns}
+          rows={rows}
+          columnWidths={columnWidths}
+          onColumnWidthsChange={setColumnWidths}
+        />
+      </>
+    );
+  }
+  ```
+</Accordion>
+
+## Resize Events
+
+### onColumnResize
+
+Triggered when a column is actively being resized:
+
+```tsx
+import type { CalculatedColumn } from 'react-data-grid';
+
+function MyGrid() {
+  function handleColumnResize(
+    column: CalculatedColumn<Row>,
+    width: number
+  ) {
+    console.log(`Column ${column.key} resized to ${width}px`);
+  }
+  
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      onColumnResize={handleColumnResize}
+    />
+  );
+}
+```
+
+### onColumnWidthsChange
+
+Triggered when column widths are updated:
+
+```tsx
+import type { ColumnWidths } from 'react-data-grid';
+
+function MyGrid() {
+  function handleColumnWidthsChange(columnWidths: ColumnWidths) {
+    // Persist to localStorage
+    const widthsArray = Array.from(columnWidths.entries());
+    localStorage.setItem('columnWidths', JSON.stringify(widthsArray));
+  }
+  
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      onColumnWidthsChange={handleColumnWidthsChange}
+    />
+  );
+}
+```
+
+<Accordion title="Persisting Column Widths">
+  Save and restore column widths across sessions:
+  
+  ```tsx
+  import { useState, useEffect } from 'react';
+  import type { ColumnWidths } from 'react-data-grid';
+  
+  function MyGrid() {
+    const [columnWidths, setColumnWidths] = useState<ColumnWidths>(() => {
+      // Load from localStorage on mount
+      const saved = localStorage.getItem('columnWidths');
+      if (saved) {
+        const widthsArray = JSON.parse(saved);
+        return new Map(widthsArray);
+      }
+      return new Map();
+    });
+    
+    useEffect(() => {
+      // Save to localStorage on change
+      const widthsArray = Array.from(columnWidths.entries());
+      localStorage.setItem('columnWidths', JSON.stringify(widthsArray));
+    }, [columnWidths]);
+    
+    return (
+      <DataGrid
+        columns={columns}
+        rows={rows}
+        columnWidths={columnWidths}
+        onColumnWidthsChange={setColumnWidths}
+      />
+    );
+  }
+  ```
+</Accordion>
+
+## RTL Support
+
+Column resizing works automatically in RTL mode:
+
+```tsx
+<DataGrid
+  columns={columns}
+  rows={rows}
+  direction="rtl"
+  defaultColumnOptions={{ resizable: true }}
+/>
+```
+
+<Info>
+In RTL mode, the resize handle appears on the left edge of columns instead of the right edge.
+</Info>
+
+## Interaction Details
+
+### Resize Handle
+
+- **Location**: Right edge of column header (left edge in RTL mode)
+- **Cursor**: Changes to `col-resize` when hovering over handle
+- **Double Click**: Auto-sizes column to fit content (if supported)
+- **Drag**: Click and drag to adjust width
+
+### Keyboard Support
+
+The resize handle is not keyboard accessible. Consider providing alternative controls for keyboard users:
+
+```tsx
+function MyGrid() {
+  const [columnWidths, setColumnWidths] = useState<ColumnWidths>(new Map());
+  
+  function adjustColumnWidth(columnKey: string, delta: number) {
+    setColumnWidths((prev) => {
+      const current = prev.get(columnKey);
+      const currentWidth = current?.width ?? 150;
+      const newWidths = new Map(prev);
+      newWidths.set(columnKey, {
+        type: 'resized',
+        width: Math.max(50, currentWidth + delta)
+      });
+      return newWidths;
+    });
+  }
+  
+  return (
+    <>
+      <div role="toolbar" aria-label="Column width controls">
+        <button onClick={() => adjustColumnWidth('name', -10)}>Name -</button>
+        <button onClick={() => adjustColumnWidth('name', 10)}>Name +</button>
+      </div>
+      <DataGrid
+        columns={columns}
+        rows={rows}
+        columnWidths={columnWidths}
+        onColumnWidthsChange={setColumnWidths}
+      />
+    </>
+  );
+}
+```
+
+## API Reference
+
+### Column Properties
+
+#### resizable
+
+```tsx
+resizable?: boolean
+```
+
+**Default**: `false`
+
+Enables resizing for the column.
+
+#### width
+
+```tsx
+width?: number | string
+```
+
+**Default**: `'auto'`
+
+Initial column width. Can be pixels (`80`) or CSS value (`'25%'`, `'max-content'`).
+
+#### minWidth
+
+```tsx
+minWidth?: number
+```
+
+**Default**: `50`
+
+Minimum column width in pixels.
+
+#### maxWidth
+
+```tsx
+maxWidth?: number
+```
+
+**Default**: `undefined`
+
+Maximum column width in pixels.
+
+### DataGrid Props
+
+#### columnWidths
+
+```tsx
+columnWidths?: ColumnWidths
+```
+
+Controlled column widths state. When provided, you must also provide `onColumnWidthsChange`.
+
+#### onColumnWidthsChange
+
+```tsx
+onColumnWidthsChange?: (columnWidths: ColumnWidths) => void
+```
+
+Callback triggered when column widths change.
+
+#### onColumnResize
+
+```tsx
+onColumnResize?: (column: CalculatedColumn<R, SR>, width: number) => void
+```
+
+Callback triggered during resize (as the user drags).
+
+#### defaultColumnOptions
+
+```tsx
+defaultColumnOptions?: {
+  resizable?: boolean;
+  width?: number | string;
+  minWidth?: number;
+  maxWidth?: number;
+  // ... other column options
+}
+```
+
+Default options applied to all columns.
+
+## Related Features
+
+- [Column Grouping](/features/column-grouping) - Group related columns under headers
+- [Frozen Columns](/features/frozen-columns) - Pin columns to prevent horizontal scrolling

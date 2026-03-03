@@ -1,0 +1,163 @@
+---
+title: renderToggleGroup
+description: Default group cell renderer for expand/collapse controls in TreeDataGrid
+---
+
+## Overview
+
+The `renderToggleGroup` function is the default group cell renderer used by `TreeDataGrid` for columns specified in the `groupBy` prop. It renders an expand/collapse toggle control with a caret icon.
+
+## Signature
+
+```tsx
+function renderToggleGroup<R, SR>(
+  props: RenderGroupCellProps<R, SR>
+): React.ReactElement
+```
+
+## Parameters
+
+<ParamField path="props" type="RenderGroupCellProps<R, SR>" required>
+  The group cell renderer props.
+</ParamField>
+
+### RenderGroupCellProps
+
+<ParamField path="groupKey" type="unknown" required>
+  The value that identifies this group (displayed as the group label).
+</ParamField>
+
+<ParamField path="column" type="CalculatedColumn<R, SR>" required>
+  The column object for this group cell.
+</ParamField>
+
+<ParamField path="row" type="GroupRow<R>" required>
+  The group row object.
+</ParamField>
+
+<ParamField path="childRows" type="readonly R[]" required>
+  Array of child rows belonging to this group.
+</ParamField>
+
+<ParamField path="isExpanded" type="boolean" required>
+  Whether the group is currently expanded.
+</ParamField>
+
+<ParamField path="tabIndex" type="number" required>
+  The tab index for keyboard navigation.
+</ParamField>
+
+<ParamField path="toggleGroup" type="() => void" required>
+  Callback function to toggle the group's expanded/collapsed state.
+</ParamField>
+
+## Return Value
+
+<ResponseField name="return" type="React.ReactElement">
+  A span element containing the group key text and an animated caret icon.
+</ResponseField>
+
+## Usage
+
+This renderer is used automatically by `TreeDataGrid` for grouping columns, but you can also specify it explicitly:
+
+```tsx
+import { renderToggleGroup, type Column } from 'react-data-grid';
+
+const columns: readonly Column<Row>[] = [
+  {
+    key: 'group',
+    name: 'Group',
+    renderGroupCell: renderToggleGroup
+  }
+];
+```
+
+## Features
+
+- **Visual indicator**: Animated caret icon (▶ when collapsed, ▼ when expanded)
+- **Keyboard support**: Press Enter to toggle the group
+- **Smooth animation**: 0.1s transition when expanding/collapsing
+- **Accessible**: Focusable with proper tab index and keyboard handling
+
+## Example
+
+Using with TreeDataGrid:
+
+```tsx
+import { useState } from 'react';
+import { TreeDataGrid, renderToggleGroup, type Column } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  country: string;
+  city: string;
+  name: string;
+}
+
+const columns: readonly Column<Row>[] = [
+  {
+    key: 'country',
+    name: 'Country',
+    renderGroupCell: renderToggleGroup
+  },
+  {
+    key: 'city',
+    name: 'City',
+    renderGroupCell: renderToggleGroup
+  },
+  { key: 'name', name: 'Name' }
+];
+
+function rowGrouper(rows: readonly Row[], columnKey: string) {
+  return Object.groupBy(rows, (row) => row[columnKey]);
+}
+
+function App() {
+  const [expandedGroupIds, setExpandedGroupIds] = useState(
+    (): ReadonlySet<unknown> => new Set()
+  );
+
+  return (
+    <TreeDataGrid
+      columns={columns}
+      rows={rows}
+      groupBy={['country', 'city']}
+      rowGrouper={rowGrouper}
+      expandedGroupIds={expandedGroupIds}
+      onExpandedGroupIdsChange={setExpandedGroupIds}
+    />
+  );
+}
+```
+
+## ToggleGroup Component
+
+The underlying `<ToggleGroup>` component can be used directly in custom group cell renderers:
+
+```tsx
+import { ToggleGroup, type RenderGroupCellProps } from 'react-data-grid';
+
+function CustomGroupCell(props: RenderGroupCellProps<Row>) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <ToggleGroup {...props} />
+      <span>({props.childRows.length} items)</span>
+    </div>
+  );
+}
+```
+
+## Caret Icon
+
+- **Expanded state**: `M1 1 L 7 7 L 13 1` (chevron pointing down)
+- **Collapsed state**: `M1 7 L 7 1 L 13 7` (chevron pointing right)
+- **Size**: 14×8 pixels
+- **Stroke**: `currentColor` with 1.5px width
+- **Animation**: Smooth path transition on state change
+
+## Related
+
+- [TreeDataGrid](/api/treedatagrid) - Tree grid component
+- [Column.renderGroupCell](/api/types/column#rendergroupcell) - Group cell renderer configuration
+- [RenderGroupCellProps](/api/types/render-props#rendergroupcellprops) - Group cell props type

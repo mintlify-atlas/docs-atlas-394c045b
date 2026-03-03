@@ -1,0 +1,122 @@
+---
+title: renderSortIcon
+description: Renders the sort direction arrow icon for sortable columns
+---
+
+## Overview
+
+The `renderSortIcon` function renders a visual indicator (arrow icon) showing the sort direction for sortable columns. It displays an up arrow for ascending sort and a down arrow for descending sort.
+
+## Signature
+
+```tsx
+function renderSortIcon(props: RenderSortIconProps): React.ReactNode
+```
+
+## Parameters
+
+<ParamField path="props" type="RenderSortIconProps" required>
+  The sort icon renderer props.
+</ParamField>
+
+### RenderSortIconProps
+
+<ParamField path="sortDirection" type="'ASC' | 'DESC' | undefined" required>
+  The current sort direction. Returns `null` if undefined (column not sorted).
+</ParamField>
+
+## Return Value
+
+<ResponseField name="return" type="React.ReactNode">
+  An SVG arrow icon pointing up (ASC) or down (DESC), or `null` if the column is not sorted.
+</ResponseField>
+
+## Usage
+
+This function is typically used within custom sort status renderers:
+
+```tsx
+import { renderSortIcon, type RenderSortStatusProps } from 'react-data-grid';
+
+function CustomSortStatus({ sortDirection, priority }: RenderSortStatusProps) {
+  return (
+    <div>
+      {renderSortIcon({ sortDirection })}
+      {priority && <span>{priority}</span>}
+    </div>
+  );
+}
+```
+
+## Icon Specifications
+
+- **SVG viewBox**: `0 0 12 8`
+- **Dimensions**: 12×8 pixels
+- **Ascending arrow path**: `M0 8 6 0 12 8` (points up)
+- **Descending arrow path**: `M0 0 6 8 12 0` (points down)
+- **Transition**: Smooth 0.1s animation when direction changes
+- **Color**: Inherits `currentColor` from parent
+
+## Example
+
+Custom sort status with icon and priority:
+
+```tsx
+import {
+  DataGridDefaultRenderersContext,
+  renderSortIcon,
+  renderSortPriority,
+  type Renderers
+} from 'react-data-grid';
+
+const customRenderers: Renderers<unknown, unknown> = {
+  renderSortStatus(props) {
+    return (
+      <>
+        {renderSortIcon(props)}
+        {renderSortPriority(props)}
+      </>
+    );
+  }
+};
+
+function App() {
+  return (
+    <DataGridDefaultRenderersContext.Provider value={customRenderers}>
+      <DataGrid columns={columns} rows={rows} />
+    </DataGridDefaultRenderersContext.Provider>
+  );
+}
+```
+
+## Styling
+
+The icon has the class `rdg-sort-arrow` and includes:
+
+- `fill: currentColor` - Inherits text color
+- `transition: d 0.1s` - Smooth path animation
+- `aria-hidden` - Hidden from screen readers
+
+## Custom Sort Icons
+
+You can create custom sort icons:
+
+```tsx
+import type { RenderSortIconProps } from 'react-data-grid';
+
+function CustomSortIcon({ sortDirection }: RenderSortIconProps) {
+  if (sortDirection === undefined) return null;
+
+  return (
+    <span style={{ marginLeft: 4 }}>
+      {sortDirection === 'ASC' ? '↑' : '↓'}
+    </span>
+  );
+}
+```
+
+## Related
+
+- [renderSortPriority](/api/render-sort-icon#rendersortpriority) - Sort priority number renderer
+- [renderHeaderCell](/api/render-header-cell) - Default header cell renderer
+- [Renderers.renderSortStatus](/api/types/render-props#rendersortstatus) - Custom sort status renderer

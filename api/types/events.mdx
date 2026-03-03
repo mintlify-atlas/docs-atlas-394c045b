@@ -1,0 +1,410 @@
+---
+title: 'Event Types'
+description: 'CellMouseEvent, CellKeyboardEvent, and event handler type definitions'
+---
+
+## CellMouseEvent
+
+Extends `React.MouseEvent<HTMLDivElement>` with grid-specific methods.
+
+```typescript
+type CellMouseEvent = CellEvent<React.MouseEvent<HTMLDivElement>>;
+
+type CellEvent<E extends React.SyntheticEvent<HTMLDivElement>> = E & {
+  preventGridDefault: () => void;
+  isGridDefaultPrevented: () => boolean;
+};
+```
+
+### Methods
+
+<ParamField path="preventGridDefault" type="() => void" required>
+  Prevents the default grid behavior for this event (e.g., cell selection).
+</ParamField>
+
+<ParamField path="isGridDefaultPrevented" type="() => boolean" required>
+  Returns whether `preventGridDefault` was called.
+</ParamField>
+
+### Example
+
+```typescript
+import type { CellMouseArgs, CellMouseEvent } from 'react-data-grid';
+
+function onCellClick(args: CellMouseArgs<Row>, event: CellMouseEvent) {
+  if (args.column.key === 'actions') {
+    event.preventGridDefault(); // Prevent cell selection
+  }
+}
+```
+
+---
+
+## CellKeyboardEvent
+
+Extends `React.KeyboardEvent<HTMLDivElement>` with grid-specific methods.
+
+```typescript
+type CellKeyboardEvent = CellEvent<React.KeyboardEvent<HTMLDivElement>>;
+
+type CellEvent<E extends React.SyntheticEvent<HTMLDivElement>> = E & {
+  preventGridDefault: () => void;
+  isGridDefaultPrevented: () => boolean;
+};
+```
+
+### Methods
+
+<ParamField path="preventGridDefault" type="() => void" required>
+  Prevents the default grid behavior for this keyboard event (e.g., navigation, editing).
+</ParamField>
+
+<ParamField path="isGridDefaultPrevented" type="() => boolean" required>
+  Returns whether `preventGridDefault` was called.
+</ParamField>
+
+### Example
+
+```typescript
+import type { CellKeyboardEvent, CellKeyDownArgs } from 'react-data-grid';
+
+function onCellKeyDown(args: CellKeyDownArgs<Row>, event: CellKeyboardEvent) {
+  if (args.mode === 'EDIT' && event.key === 'Escape') {
+    args.onClose(false); // Close without committing
+    event.preventGridDefault();
+  }
+}
+```
+
+---
+
+## CellClipboardEvent
+
+Type alias for clipboard events.
+
+```typescript
+type CellClipboardEvent = React.ClipboardEvent<HTMLDivElement>;
+```
+
+Used for copy and paste events.
+
+---
+
+## CellMouseArgs\<TRow, TSummaryRow\>
+
+Arguments passed to cell mouse event handlers.
+
+```typescript
+interface CellMouseArgs<TRow, TSummaryRow = unknown> {
+  column: CalculatedColumn<TRow, TSummaryRow>;
+  row: TRow;
+  rowIdx: number;
+  selectCell: (enableEditor?: boolean) => void;
+}
+```
+
+### Properties
+
+<ParamField path="column" type="CalculatedColumn<TRow, TSummaryRow>" required>
+  The column object of the cell.
+</ParamField>
+
+<ParamField path="row" type="TRow" required>
+  The row object of the cell.
+</ParamField>
+
+<ParamField path="rowIdx" type="number" required>
+  The row index of the cell.
+</ParamField>
+
+<ParamField path="selectCell" type="(enableEditor?: boolean) => void" required>
+  Function to manually select the cell. Pass `true` to immediately start editing.
+</ParamField>
+
+### Example
+
+```typescript
+import type { CellMouseArgs, CellMouseEvent } from 'react-data-grid';
+
+function onCellClick(args: CellMouseArgs<Row>, event: CellMouseEvent) {
+  console.log('Clicked cell at row', args.rowIdx, 'column', args.column.key);
+  args.selectCell(true); // Select and start editing
+}
+```
+
+---
+
+## CellKeyDownArgs\<TRow, TSummaryRow\>
+
+Arguments passed to the `onCellKeyDown` handler. The shape differs based on whether the cell is in SELECT or EDIT mode.
+
+```typescript
+type CellKeyDownArgs<TRow, TSummaryRow = unknown> =
+  | SelectCellKeyDownArgs<TRow, TSummaryRow>
+  | EditCellKeyDownArgs<TRow, TSummaryRow>;
+```
+
+### SELECT Mode
+
+```typescript
+interface SelectCellKeyDownArgs<TRow, TSummaryRow = unknown> {
+  mode: 'SELECT';
+  column: CalculatedColumn<TRow, TSummaryRow> | undefined;
+  row: TRow;
+  rowIdx: number;
+  selectCell: (position: Position, options?: SelectCellOptions) => void;
+}
+```
+
+<ParamField path="mode" type="'SELECT'" required>
+  Indicates the cell is in select mode.
+</ParamField>
+
+<ParamField path="column" type="CalculatedColumn<TRow, TSummaryRow> | undefined" required>
+  The column object of the selected cell, or undefined.
+</ParamField>
+
+<ParamField path="row" type="TRow" required>
+  The row object.
+</ParamField>
+
+<ParamField path="rowIdx" type="number" required>
+  The row index.
+</ParamField>
+
+<ParamField path="selectCell" type="(position: Position, options?: SelectCellOptions) => void" required>
+  Function to select a different cell.
+</ParamField>
+
+### EDIT Mode
+
+```typescript
+interface EditCellKeyDownArgs<TRow, TSummaryRow = unknown> {
+  mode: 'EDIT';
+  column: CalculatedColumn<TRow, TSummaryRow>;
+  row: TRow;
+  rowIdx: number;
+  navigate: () => void;
+  onClose: (commitChanges?: boolean, shouldFocusCell?: boolean) => void;
+}
+```
+
+<ParamField path="mode" type="'EDIT'" required>
+  Indicates the cell is in edit mode.
+</ParamField>
+
+<ParamField path="column" type="CalculatedColumn<TRow, TSummaryRow>" required>
+  The column object of the cell being edited.
+</ParamField>
+
+<ParamField path="row" type="TRow" required>
+  The row object.
+</ParamField>
+
+<ParamField path="rowIdx" type="number" required>
+  The row index.
+</ParamField>
+
+<ParamField path="navigate" type="() => void" required>
+  Function to trigger navigation after editing.
+</ParamField>
+
+<ParamField path="onClose" type="(commitChanges?: boolean, shouldFocusCell?: boolean) => void" required>
+  Callback to close the editor.
+</ParamField>
+
+---
+
+## CellSelectArgs\<TRow, TSummaryRow\>
+
+Arguments passed to `onSelectedCellChange`.
+
+```typescript
+interface CellSelectArgs<TRow, TSummaryRow = unknown> {
+  rowIdx: number;
+  row: TRow | undefined;
+  column: CalculatedColumn<TRow, TSummaryRow>;
+}
+```
+
+### Properties
+
+<ParamField path="rowIdx" type="number" required>
+  The row index of the selected cell.
+</ParamField>
+
+<ParamField path="row" type="TRow | undefined" required>
+  The row object of the selected cell, or undefined.
+</ParamField>
+
+<ParamField path="column" type="CalculatedColumn<TRow, TSummaryRow>" required>
+  The column object of the selected cell.
+</ParamField>
+
+---
+
+## CellCopyArgs\<TRow, TSummaryRow\>
+
+Arguments passed to `onCellCopy`.
+
+```typescript
+interface CellCopyArgs<TRow, TSummaryRow = unknown> {
+  column: CalculatedColumn<TRow, TSummaryRow>;
+  row: TRow;
+}
+```
+
+### Properties
+
+<ParamField path="column" type="CalculatedColumn<TRow, TSummaryRow>" required>
+  The column object of the cell being copied.
+</ParamField>
+
+<ParamField path="row" type="TRow" required>
+  The row object of the cell being copied.
+</ParamField>
+
+---
+
+## CellPasteArgs\<TRow, TSummaryRow\>
+
+Arguments passed to `onCellPaste`.
+
+```typescript
+interface CellPasteArgs<TRow, TSummaryRow = unknown> {
+  column: CalculatedColumn<TRow, TSummaryRow>;
+  row: TRow;
+}
+```
+
+### Properties
+
+<ParamField path="column" type="CalculatedColumn<TRow, TSummaryRow>" required>
+  The column object of the cell being pasted into.
+</ParamField>
+
+<ParamField path="row" type="TRow" required>
+  The row object of the cell being pasted into.
+</ParamField>
+
+---
+
+## SelectRowEvent\<TRow\>
+
+Event object for row selection changes.
+
+```typescript
+interface SelectRowEvent<TRow> {
+  row: TRow;
+  checked: boolean;
+  isShiftClick: boolean;
+}
+```
+
+### Properties
+
+<ParamField path="row" type="TRow" required>
+  The row being selected/deselected.
+</ParamField>
+
+<ParamField path="checked" type="boolean" required>
+  Whether the row is being selected (true) or deselected (false).
+</ParamField>
+
+<ParamField path="isShiftClick" type="boolean" required>
+  Whether the shift key was pressed during selection.
+</ParamField>
+
+---
+
+## SelectHeaderRowEvent
+
+Event object for header row selection changes (select all).
+
+```typescript
+interface SelectHeaderRowEvent {
+  checked: boolean;
+}
+```
+
+### Properties
+
+<ParamField path="checked" type="boolean" required>
+  Whether all rows are being selected (true) or deselected (false).
+</ParamField>
+
+---
+
+## FillEvent\<TRow\>
+
+Event object for drag-fill operations.
+
+```typescript
+interface FillEvent<TRow> {
+  columnKey: string;
+  sourceRow: TRow;
+  targetRow: TRow;
+}
+```
+
+### Properties
+
+<ParamField path="columnKey" type="string" required>
+  The key of the column being filled.
+</ParamField>
+
+<ParamField path="sourceRow" type="TRow" required>
+  The source row being copied from.
+</ParamField>
+
+<ParamField path="targetRow" type="TRow" required>
+  The target row being filled.
+</ParamField>
+
+Used with the `onFill` prop to handle cell value dragging.
+
+---
+
+## Position
+
+Represents a cell position in the grid.
+
+```typescript
+interface Position {
+  readonly idx: number;
+  readonly rowIdx: number;
+}
+```
+
+### Properties
+
+<ParamField path="idx" type="number" required>
+  The column index.
+</ParamField>
+
+<ParamField path="rowIdx" type="number" required>
+  The row index.
+</ParamField>
+
+---
+
+## SelectCellOptions
+
+Options for programmatically selecting a cell.
+
+```typescript
+interface SelectCellOptions {
+  enableEditor?: Maybe<boolean>;
+  shouldFocusCell?: Maybe<boolean>;
+}
+```
+
+### Properties
+
+<ParamField path="enableEditor" type="boolean">
+  Whether to enable the editor when selecting the cell.
+</ParamField>
+
+<ParamField path="shouldFocusCell" type="boolean">
+  Whether to focus the cell after selection.
+</ParamField>

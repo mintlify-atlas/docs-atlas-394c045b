@@ -1,0 +1,137 @@
+---
+title: renderTextEditor
+description: Basic text input editor for editable cells
+---
+
+## Overview
+
+The `renderTextEditor` function provides a basic text input editor for editable cells in the DataGrid. It renders an input field that auto-focuses and selects the text when editing begins.
+
+## Signature
+
+```tsx
+function renderTextEditor<TRow, TSummaryRow>(
+  props: RenderEditCellProps<TRow, TSummaryRow>
+): React.ReactElement
+```
+
+## Parameters
+
+<ParamField path="props" type="RenderEditCellProps<TRow, TSummaryRow>" required>
+  The edit cell renderer props.
+</ParamField>
+
+### RenderEditCellProps
+
+<ParamField path="props.row" type="TRow" required>
+  The row object being edited.
+</ParamField>
+
+<ParamField path="props.column" type="CalculatedColumn<TRow, TSummaryRow>" required>
+  The column object for the cell being edited.
+</ParamField>
+
+<ParamField path="props.rowIdx" type="number" required>
+  The index of the row being edited.
+</ParamField>
+
+<ParamField path="props.onRowChange" type="(row: TRow, commitChanges?: boolean) => void" required>
+  Callback to update the row. Call with the updated row object.
+</ParamField>
+
+<ParamField path="props.onClose" type="(commitChanges?: boolean, shouldFocusCell?: boolean) => void" required>
+  Callback to close the editor. Pass `true` to commit changes, `false` to discard.
+</ParamField>
+
+## Return Value
+
+<ResponseField name="return" type="React.ReactElement">
+  A text input element configured for editing the cell value.
+</ResponseField>
+
+## Usage
+
+Assign this function to the `renderEditCell` property of a column to make it editable:
+
+```tsx
+import { renderTextEditor, type Column } from 'react-data-grid';
+
+const columns: readonly Column<Row>[] = [
+  {
+    key: 'title',
+    name: 'Title',
+    renderEditCell: renderTextEditor
+  }
+];
+```
+
+## Features
+
+- **Auto-focus**: The input automatically receives focus when editing begins
+- **Auto-select**: The existing text is automatically selected for easy replacement
+- **Blur handling**: Changes are automatically committed when the input loses focus
+- **Styled**: Includes default styling with border, padding, and focus states
+
+## Example
+
+Basic editable grid with text editor:
+
+```tsx
+import 'react-data-grid/lib/styles.css';
+import { DataGrid, renderTextEditor, type Column } from 'react-data-grid';
+import { useState } from 'react';
+
+interface Row {
+  id: number;
+  title: string;
+  description: string;
+}
+
+const columns: readonly Column<Row>[] = [
+  { key: 'id', name: 'ID' },
+  {
+    key: 'title',
+    name: 'Title',
+    renderEditCell: renderTextEditor
+  },
+  {
+    key: 'description',
+    name: 'Description',
+    renderEditCell: renderTextEditor
+  }
+];
+
+function App() {
+  const [rows, setRows] = useState<Row[]>([
+    { id: 0, title: 'Example', description: 'Example description' },
+    { id: 1, title: 'Demo', description: 'Demo description' }
+  ]);
+
+  return <DataGrid columns={columns} rows={rows} onRowsChange={setRows} />;
+}
+```
+
+## Custom Editors
+
+For more complex editing requirements, you can create a custom editor:
+
+```tsx
+import type { RenderEditCellProps } from 'react-data-grid';
+
+function CustomEditor({ row, column, onRowChange, onClose }: RenderEditCellProps<MyRow>) {
+  return (
+    <input
+      autoFocus
+      value={row[column.key]}
+      onChange={(event) => onRowChange({ ...row, [column.key]: event.target.value })}
+      onBlur={() => onClose(true)}
+    />
+  );
+}
+```
+
+## Related
+
+- [Column Type](/api/types/column) - Column type definition
+- [RenderEditCellProps](/api/types/render-props) - Edit cell props type
+- [DataGrid Component](/api/datagrid) - DataGrid props and configuration

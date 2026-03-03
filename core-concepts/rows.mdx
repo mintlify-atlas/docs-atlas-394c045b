@@ -1,0 +1,287 @@
+---
+title: Row Data & Management
+description: Working with row data, keys, and updates
+---
+
+## Overview
+
+Rows represent the data displayed in your grid. React Data Grid accepts any array of objects and provides efficient rendering through virtualization.
+
+## Basic Row Setup
+
+```tsx
+import 'react-data-grid/lib/styles.css';
+import { DataGrid, type Column } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  title: string;
+}
+
+const columns: readonly Column<Row>[] = [
+  { key: 'id', name: 'ID' },
+  { key: 'title', name: 'Title' }
+];
+
+const rows: readonly Row[] = [
+  { id: 0, title: 'Example' },
+  { id: 1, title: 'Demo' }
+];
+
+function App() {
+  return <DataGrid columns={columns} rows={rows} />;
+}
+```
+
+## Row Key Getter
+
+Provide a unique key for each row to enable selection and optimize performance:
+
+<ParamField path="rowKeyGetter" type="(row: R) => K" required="for selection">
+  Function that returns a unique identifier for each row.
+</ParamField>
+
+```tsx
+import { useState } from 'react';
+import { DataGrid, SelectColumn } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  name: string;
+}
+
+function rowKeyGetter(row: Row) {
+  return row.id;
+}
+
+function MyGrid() {
+  const [selectedRows, setSelectedRows] = useState((): ReadonlySet<number> => new Set());
+
+  return (
+    <DataGrid
+      columns={[SelectColumn, ...otherColumns]}
+      rows={rows}
+      rowKeyGetter={rowKeyGetter}
+      selectedRows={selectedRows}
+      onSelectedRowsChange={setSelectedRows}
+    />
+  );
+}
+```
+
+<Tip>
+  While optional, `rowKeyGetter` is highly recommended for optimal performance. The returned value sets the `key` prop on row elements.
+</Tip>
+
+<Warning>
+  Define `rowKeyGetter` outside your component or memoize with `useCallback` to prevent unnecessary re-renders.
+</Warning>
+
+## Updating Rows
+
+Use the `onRowsChange` callback to handle row updates:
+
+<ParamField path="onRowsChange" type="(rows: R[], data: RowsChangeData<R, SR>) => void">
+  Callback triggered when rows are modified through editing or other grid interactions.
+  
+  **Parameters:**
+  - `rows`: New array with updated rows and unchanged rows
+  - `data.indexes`: Array of row indexes that changed
+  - `data.column`: The column where the change occurred
+</ParamField>
+
+```tsx
+import { useState } from 'react';
+import { DataGrid } from 'react-data-grid';
+
+function MyGrid() {
+  const [rows, setRows] = useState(initialRows);
+
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      onRowsChange={setRows}
+    />
+  );
+}
+```
+
+## Row Heights
+
+<ParamField path="rowHeight" type="number | ((row: R) => number)" default={35}>
+  Height of each row in pixels. Can be a fixed number or a function for dynamic heights.
+</ParamField>
+
+### Fixed Height
+
+```tsx
+<DataGrid columns={columns} rows={rows} rowHeight={50} />
+```
+
+### Dynamic Height
+
+```tsx
+function getRowHeight(row: Row) {
+  return row.isExpanded ? 100 : 35;
+}
+
+<DataGrid columns={columns} rows={rows} rowHeight={getRowHeight} />
+```
+
+<Warning>
+  When using dynamic row heights with large datasets (1000+ rows), ensure the function identity remains stable to avoid performance issues. Use a static function or memoize with `useCallback`.
+</Warning>
+
+## Row Styling
+
+<ParamField path="rowClass" type="(row: R, rowIdx: number) => string | null">
+  Function to apply custom CSS classes to rows.
+</ParamField>
+
+```tsx
+function rowClass(row: Row, rowIdx: number) {
+  if (row.isDisabled) return 'row-disabled';
+  return rowIdx % 2 === 0 ? 'row-even' : 'row-odd';
+}
+
+<DataGrid
+  columns={columns}
+  rows={rows}
+  rowClass={rowClass}
+/>
+```
+
+<Warning>
+  Define `rowClass` outside your component or memoize with `useCallback` to avoid re-rendering all rows on every render.
+</Warning>
+
+## Performance Optimization
+
+React Data Grid is optimized for efficient rendering:
+
+### Virtualization
+
+Only visible rows are rendered in the DOM. Rows outside the viewport are not rendered, enabling smooth performance with large datasets.
+
+### Individual Row Updates
+
+Row components are memoized. Updating a single row object only re-renders that specific row:
+
+```tsx
+// ✅ Good: Only changed row is re-rendered
+setRows(rows.map((row, idx) => 
+  idx === targetIdx ? { ...row, updated: true } : row
+));
+
+// ❌ Avoid: Creates new references for all rows
+setRows(rows.map((row) => ({ ...row })));
+```
+
+### Array Reference Matters
+
+Changing the array reference triggers viewport and layout recalculations:
+
+```tsx
+// ✅ Good: New array, but unchanged row objects are reused
+const updatedRows = [...rows];
+updatedRows[index] = updatedRow;
+setRows(updatedRows);
+
+// ⚠️ Triggers recalculation even if rows are identical
+setRows([...rows]);
+```
+
+<Tip>
+  When updating rows, create a new array but reuse unchanged row objects for optimal performance.
+</Tip>
+
+## Summary Rows
+
+Display summary information at the top or bottom of the grid:
+
+<ParamField path="topSummaryRows" type="readonly SR[]">
+  Rows pinned at the top for summary purposes.
+</ParamField>
+
+<ParamField path="bottomSummaryRows" type="readonly SR[]">
+  Rows pinned at the bottom for summary purposes.
+</ParamField>
+
+<ParamField path="summaryRowHeight" type="number" default="rowHeight or 35">
+  Height of summary rows in pixels.
+</ParamField>
+
+```tsx
+interface SummaryRow {
+  id: string;
+  totalPrice: number;
+}
+
+const summaryRows: readonly SummaryRow[] = [
+  { id: 'total', totalPrice: 10000 }
+];
+
+<DataGrid
+  columns={columns}
+  rows={rows}
+  topSummaryRows={summaryRows}
+  summaryRowHeight={40}
+/>
+```
+
+## Empty State
+
+Display a custom message when there are no rows:
+
+```tsx
+import { DataGrid, type Renderers } from 'react-data-grid';
+
+const customRenderers: Renderers<Row, SummaryRow> = {
+  noRowsFallback: <div>No data available</div>
+};
+
+<DataGrid
+  columns={columns}
+  rows={[]}
+  renderers={customRenderers}
+/>
+```
+
+## TypeScript Types
+
+```typescript
+interface DataGridProps<R, SR = unknown, K extends Key = Key> {
+  /** Array of row data */
+  rows: readonly R[];
+  
+  /** Function to return unique key for each row */
+  rowKeyGetter?: Maybe<(row: R) => K>;
+  
+  /** Callback when rows are changed */
+  onRowsChange?: Maybe<(rows: R[], data: RowsChangeData<R, SR>) => void>;
+  
+  /** Row height in pixels or function */
+  rowHeight?: Maybe<number | ((row: R) => number)>;
+  
+  /** Function to apply custom classes to rows */
+  rowClass?: Maybe<(row: R, rowIdx: number) => Maybe<string>>;
+  
+  /** Summary rows at the top */
+  topSummaryRows?: Maybe<readonly SR[]>;
+  
+  /** Summary rows at the bottom */
+  bottomSummaryRows?: Maybe<readonly SR[]>;
+  
+  /** Height of summary rows */
+  summaryRowHeight?: Maybe<number>;
+}
+
+interface RowsChangeData<R, SR = unknown> {
+  /** Array of indexes that changed */
+  indexes: number[];
+  
+  /** Column where the change occurred */
+  column: CalculatedColumn<R, SR>;
+}
+```

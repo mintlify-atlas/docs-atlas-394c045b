@@ -1,122 +1,128 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "React Data Grid",
+  "theme": "palm",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#0066cc",
+    "light": "#3399ff",
+    "dark": "#003d7a"
   },
-  "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/Comcast/react-data-grid"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/Comcast/react-data-grid"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "introduction",
+              "installation",
+              "quickstart"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Core Concepts",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "core-concepts/columns",
+              "core-concepts/rows",
+              "core-concepts/selection",
+              "core-concepts/sorting",
+              "core-concepts/editing"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Features",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "features/virtualization",
+              "features/column-resizing",
+              "features/column-grouping",
+              "features/frozen-columns",
+              "features/row-grouping",
+              "features/summary-rows",
+              "features/cell-spanning",
+              "features/copy-paste",
+              "features/keyboard-navigation"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Styling",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "styling/theming",
+              "styling/css-variables",
+              "styling/custom-classes"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "advanced/custom-renderers",
+              "advanced/performance",
+              "advanced/accessibility",
+              "advanced/rtl-support"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Components",
             "pages": [
-              "api-reference/introduction"
+              "api/datagrid",
+              "api/treedatagrid",
+              "api/row",
+              "api/cell",
+              "api/select-cell-formatter"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Hooks",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api/use-row-selection",
+              "api/use-header-row-selection"
+            ]
+          },
+          {
+            "group": "Renderers",
+            "pages": [
+              "api/render-header-cell",
+              "api/render-text-editor",
+              "api/render-checkbox",
+              "api/render-sort-icon",
+              "api/render-toggle-group",
+              "api/render-value"
+            ]
+          },
+          {
+            "group": "Types",
+            "pages": [
+              "api/types/column",
+              "api/types/render-props",
+              "api/types/events",
+              "api/types/utilities"
+            ]
+          },
+          {
+            "group": "Exports",
+            "pages": [
+              "api/select-column",
+              "api/context"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

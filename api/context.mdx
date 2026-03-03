@@ -1,0 +1,121 @@
+---
+title: DataGridDefaultRenderersContext
+description: Context for providing default renderers to DataGrids in your app
+---
+
+## Overview
+
+`DataGridDefaultRenderersContext` is a React context that allows you to provide default renderers to all DataGrid components in your application without prop-drilling.
+
+## Usage
+
+```tsx
+import {
+  DataGridDefaultRenderersContext,
+  renderCheckbox,
+  renderSortIcon,
+  renderSortPriority,
+  type Renderers
+} from 'react-data-grid';
+
+// Custom implementations of renderers
+const defaultGridRenderers: Renderers<unknown, unknown> = {
+  renderCheckbox,
+  renderSortStatus(props) {
+    return (
+      <>
+        {renderSortIcon(props)}
+        {renderSortPriority(props)}
+      </>
+    );
+  }
+};
+
+function AppProvider({ children }) {
+  return (
+    <DataGridDefaultRenderersContext value={defaultGridRenderers}>
+      {children}
+    </DataGridDefaultRenderersContext>
+  );
+}
+```
+
+<Info>
+All DataGrid components within the context provider will inherit these default renderers unless overridden by the `renderers` prop.
+</Info>
+
+## Type Definition
+
+```tsx
+const DataGridDefaultRenderersContext: React.Context<Maybe<Renderers<any, any>>>;
+```
+
+The context accepts a `Renderers<TRow, TSummaryRow>` object with the following optional properties:
+
+- `renderCell` - Custom cell renderer
+- `renderCheckbox` - Custom checkbox renderer
+- `renderRow` - Custom row renderer
+- `renderSortStatus` - Custom sort status indicator
+- `noRowsFallback` - Custom empty state
+
+## useDefaultRenderers Hook
+
+The context also exports a `useDefaultRenderers<R, SR>()` hook for accessing the context value:
+
+```tsx
+import { useDefaultRenderers } from 'react-data-grid';
+
+function CustomComponent() {
+  const defaultRenderers = useDefaultRenderers();
+  
+  // Use defaultRenderers...
+}
+```
+
+## Benefits
+
+1. **Consistency** - Define renderers once and reuse across all grids
+2. **No Prop-Drilling** - Avoid passing renderer props through component trees
+3. **Easy Customization** - Override defaults on a per-grid basis when needed
+4. **Type Safety** - Fully typed with TypeScript generics
+
+## Example: Custom Checkbox
+
+```tsx
+import {
+  DataGridDefaultRenderersContext,
+  type RenderCheckboxProps,
+  type Renderers
+} from 'react-data-grid';
+
+function CustomCheckbox({ checked, disabled, onChange, tabIndex }: RenderCheckboxProps) {
+  return (
+    <input
+      type="checkbox"
+      className="my-custom-checkbox"
+      checked={checked}
+      disabled={disabled}
+      onChange={(e) => onChange(e.target.checked, e.nativeEvent.shiftKey)}
+      tabIndex={tabIndex}
+    />
+  );
+}
+
+const renderers: Renderers<unknown, unknown> = {
+  renderCheckbox: (props) => <CustomCheckbox {...props} />
+};
+
+function App() {
+  return (
+    <DataGridDefaultRenderersContext value={renderers}>
+      {/* All grids will use CustomCheckbox */}
+      <DataGrid columns={columns} rows={rows} />
+    </DataGridDefaultRenderersContext>
+  );
+}
+```
+
+## Related
+
+- [Custom Renderers](/advanced/custom-renderers) - Learn about all renderer types
+- [Renderers Type](/api/types/render-props) - Type definition for renderers

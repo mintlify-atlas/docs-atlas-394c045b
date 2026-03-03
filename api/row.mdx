@@ -1,0 +1,168 @@
+---
+title: Row
+description: Default row component for rendering grid rows
+---
+
+## Overview
+
+The default row component used by `DataGrid`. Can be wrapped via the `renderers.renderRow` prop to add contexts or customize behavior.
+
+```tsx
+import { DataGrid, Row, type RenderRowProps } from 'react-data-grid';
+
+interface MyRow {
+  id: number;
+  name: string;
+}
+
+function myRowRenderer(key: React.Key, props: RenderRowProps<MyRow>) {
+  return (
+    <MyContext key={key} value={123}>
+      <Row {...props} />
+    </MyContext>
+  );
+}
+
+function MyGrid() {
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      renderers={{ renderRow: myRowRenderer }}
+    />
+  );
+}
+```
+
+## Props
+
+The Row component accepts `RenderRowProps<TRow, TSummaryRow>`:
+
+<ParamField path="row" type="TRow" required>
+  The row data object.
+</ParamField>
+
+<ParamField path="viewportColumns" type="readonly CalculatedColumn<TRow, TSummaryRow>[]" required>
+  Array of columns currently in the viewport.
+</ParamField>
+
+<ParamField path="rowIdx" type="number" required>
+  Index of the row in the rows array.
+</ParamField>
+
+<ParamField path="selectedCellIdx" type="number | undefined" required>
+  Index of the currently selected cell in this row, or `undefined` if no cell is selected.
+</ParamField>
+
+<ParamField path="isRowSelected" type="boolean" required>
+  Whether this row is selected.
+</ParamField>
+
+<ParamField path="isRowSelectionDisabled" type="boolean" required>
+  Whether row selection is disabled for this row.
+</ParamField>
+
+<ParamField path="gridRowStart" type="number" required>
+  CSS grid-row-start value for positioning.
+</ParamField>
+
+<ParamField path="lastFrozenColumnIndex" type="number" required>
+  Index of the last frozen column, or -1 if there are no frozen columns.
+</ParamField>
+
+<ParamField path="draggedOverCellIdx" type="number | undefined" required>
+  Index of the cell being dragged over during fill operations, or `undefined`.
+</ParamField>
+
+<ParamField path="selectedCellEditor" type="ReactElement<RenderEditCellProps<TRow>> | undefined" required>
+  The cell editor component if a cell in this row is being edited, or `undefined`.
+</ParamField>
+
+<ParamField path="onRowChange" type="(column: CalculatedColumn<TRow, TSummaryRow>, rowIdx: number, newRow: TRow) => void" required>
+  Callback to update the row data.
+</ParamField>
+
+<ParamField path="rowClass" type="(row: TRow, rowIdx: number) => string | undefined" required>
+  Function to determine custom CSS class names for the row.
+</ParamField>
+
+<ParamField path="selectCell" type="(position: Position, options?: SelectCellOptions) => void" required>
+  Function to programmatically select a cell.
+</ParamField>
+
+<ParamField path="isTreeGrid" type="boolean" required>
+  Whether the grid is a TreeDataGrid (role="treegrid").
+</ParamField>
+
+<ParamField path="onCellMouseDown" type="CellMouseEventHandler<TRow, TSummaryRow>" required>
+  Callback triggered when a pointer becomes active in a cell.
+</ParamField>
+
+<ParamField path="onCellClick" type="CellMouseEventHandler<TRow, TSummaryRow>" required>
+  Callback triggered when a cell is clicked.
+</ParamField>
+
+<ParamField path="onCellDoubleClick" type="CellMouseEventHandler<TRow, TSummaryRow>" required>
+  Callback triggered when a cell is double-clicked.
+</ParamField>
+
+<ParamField path="onCellContextMenu" type="CellMouseEventHandler<TRow, TSummaryRow>" required>
+  Callback triggered when a cell is right-clicked.
+</ParamField>
+
+<ParamField path="aria-rowindex" type="number" required>
+  ARIA row index (1-based) for accessibility.
+</ParamField>
+
+<ParamField path="aria-selected" type="boolean | undefined" required>
+  ARIA selected state for the row.
+</ParamField>
+
+## Custom Row Renderer
+
+To create a completely custom row renderer, implement the `renderRow` function:
+
+```tsx
+import type { RenderRowProps } from 'react-data-grid';
+
+function CustomRow({
+  row,
+  rowIdx,
+  viewportColumns,
+  selectedCellIdx,
+  isRowSelected,
+  ...props
+}: RenderRowProps<MyRow>) {
+  return (
+    <div
+      role="row"
+      aria-rowindex={props['aria-rowindex']}
+      aria-selected={isRowSelected}
+      className={`custom-row ${isRowSelected ? 'selected' : ''}`}
+    >
+      {viewportColumns.map((column) => (
+        <div key={column.key} role="gridcell">
+          {row[column.key]}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MyGrid() {
+  return (
+    <DataGrid
+      renderers={{
+        renderRow: (key, props) => <CustomRow key={key} {...props} />
+      }}
+      columns={columns}
+      rows={rows}
+    />
+  );
+}
+```
+
+## Generics
+
+- `TRow` - Row type
+- `TSummaryRow` - Summary row type (default: `unknown`)

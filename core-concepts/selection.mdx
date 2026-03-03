@@ -1,0 +1,330 @@
+---
+title: Row Selection
+description: Enable and manage row selection with checkboxes
+---
+
+## Overview
+
+Row selection allows users to select one or multiple rows using checkboxes. React Data Grid provides built-in components and hooks for managing selection state.
+
+## Basic Setup
+
+To enable row selection, you need:
+
+1. A `rowKeyGetter` function
+2. The `SelectColumn` in your columns array
+3. Selection state management
+
+```tsx
+import { useState } from 'react';
+import { DataGrid, SelectColumn, type Column } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  name: string;
+}
+
+const columns: readonly Column<Row>[] = [
+  SelectColumn,
+  { key: 'id', name: 'ID' },
+  { key: 'name', name: 'Name' }
+];
+
+function rowKeyGetter(row: Row) {
+  return row.id;
+}
+
+function MyGrid() {
+  const [selectedRows, setSelectedRows] = useState((): ReadonlySet<number> => new Set());
+
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      rowKeyGetter={rowKeyGetter}
+      selectedRows={selectedRows}
+      onSelectedRowsChange={setSelectedRows}
+    />
+  );
+}
+```
+
+## Selection Props
+
+<ParamField path="selectedRows" type="ReadonlySet<K>">
+  A set of selected row keys. Works with `rowKeyGetter` to identify selected rows.
+</ParamField>
+
+<ParamField path="onSelectedRowsChange" type="(selectedRows: Set<K>) => void">
+  Callback triggered when the selection changes.
+</ParamField>
+
+<ParamField path="rowKeyGetter" type="(row: R) => K" required>
+  Function that returns a unique key for each row. **Required** for row selection.
+</ParamField>
+
+<ParamField path="isRowSelectionDisabled" type="(row: R) => boolean">
+  Function to determine if selection is disabled for a specific row.
+</ParamField>
+
+## Select Column
+
+The `SelectColumn` is a pre-configured column that includes checkbox renderers:
+
+```tsx
+import { SelectColumn, SELECT_COLUMN_KEY } from 'react-data-grid';
+
+// Use as the first column
+const columns = [SelectColumn, ...otherColumns];
+
+// Filter out the select column if needed
+const nonSelectColumns = columns.filter(
+  (column) => column.key !== SELECT_COLUMN_KEY
+);
+```
+
+## Disabling Selection
+
+Disable selection for specific rows:
+
+```tsx
+function isRowSelectionDisabled(row: Row) {
+  return !row.isActive || row.isLocked;
+}
+
+<DataGrid
+  columns={columns}
+  rows={rows}
+  rowKeyGetter={rowKeyGetter}
+  selectedRows={selectedRows}
+  onSelectedRowsChange={setSelectedRows}
+  isRowSelectionDisabled={isRowSelectionDisabled}
+/>
+```
+
+<Note>
+  Disabled rows will be skipped during "select all" operations and cannot be selected via shift-click ranges.
+</Note>
+
+## Selection Interactions
+
+### Single Click
+
+Click a checkbox to toggle row selection.
+
+### Shift + Click
+
+Hold Shift and click to select a range of rows:
+
+```tsx
+// The grid handles shift-click automatically
+// Select from previously clicked row to current row
+```
+
+### Select All
+
+Click the header checkbox to select or deselect all rows (excluding disabled rows).
+
+### Keyboard Selection
+
+Press `Shift + Space` while a cell is focused to toggle row selection:
+
+```tsx
+// Automatically handled by the grid
+// Focus a cell, then press Shift + Space
+```
+
+## Custom Selection UI
+
+Create custom selection components using the provided hooks:
+
+### Custom Row Selection
+
+```tsx
+import { useRowSelection, type RenderCellProps } from 'react-data-grid';
+
+function CustomSelectCell({ row }: RenderCellProps<Row>) {
+  const { isRowSelectionDisabled, isRowSelected, onRowSelectionChange } = useRowSelection();
+
+  return (
+    <input
+      type="checkbox"
+      disabled={isRowSelectionDisabled}
+      checked={isRowSelected}
+      onChange={(event) =>
+        onRowSelectionChange({
+          row,
+          checked: event.currentTarget.checked,
+          isShiftClick: event.nativeEvent.shiftKey
+        })
+      }
+    />
+  );
+}
+
+const columns: Column<Row>[] = [
+  {
+    key: 'select',
+    name: '',
+    renderCell: CustomSelectCell,
+    width: 50
+  },
+  ...otherColumns
+];
+```
+
+### Custom Header Selection
+
+```tsx
+import { useLayoutEffect, useRef } from 'react';
+import { useHeaderRowSelection } from 'react-data-grid';
+
+function CustomHeaderCell() {
+  const { isIndeterminate, isRowSelected, onRowSelectionChange } = useHeaderRowSelection();
+  const checkboxRef = useRef<HTMLInputElement>(null);
+
+  useLayoutEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.indeterminate = isIndeterminate && !isRowSelected;
+    }
+  }, [isIndeterminate, isRowSelected]);
+
+  return (
+    <input
+      ref={checkboxRef}
+      type="checkbox"
+      checked={isRowSelected}
+      onChange={(event) => onRowSelectionChange({ checked: event.target.checked })}
+    />
+  );
+}
+```
+
+## Working with Selected Data
+
+Access and manipulate selected rows:
+
+```tsx
+function MyGrid() {
+  const [rows, setRows] = useState(initialRows);
+  const [selectedRows, setSelectedRows] = useState<ReadonlySet<number>>(new Set());
+
+  // Get selected row data
+  const selectedData = rows.filter((row) => selectedRows.has(row.id));
+
+  // Delete selected rows
+  function deleteSelected() {
+    setRows(rows.filter((row) => !selectedRows.has(row.id)));
+    setSelectedRows(new Set());
+  }
+
+  // Select all
+  function selectAll() {
+    setSelectedRows(new Set(rows.map((row) => row.id)));
+  }
+
+  // Clear selection
+  function clearSelection() {
+    setSelectedRows(new Set());
+  }
+
+  return (
+    <>
+      <div>
+        <button onClick={selectAll}>Select All</button>
+        <button onClick={clearSelection}>Clear</button>
+        <button onClick={deleteSelected}>Delete Selected</button>
+        <span>{selectedRows.size} rows selected</span>
+      </div>
+      <DataGrid
+        columns={[SelectColumn, ...columns]}
+        rows={rows}
+        rowKeyGetter={rowKeyGetter}
+        selectedRows={selectedRows}
+        onSelectedRowsChange={setSelectedRows}
+      />
+    </>
+  );
+}
+```
+
+## Custom Checkbox Renderer
+
+Customize the checkbox appearance:
+
+```tsx
+import { DataGrid, renderCheckbox, type Renderers } from 'react-data-grid';
+
+const customRenderers: Renderers<Row, SummaryRow> = {
+  renderCheckbox: (props) => (
+    <div className="custom-checkbox-wrapper">
+      {renderCheckbox({ ...props, 'aria-label': 'Select row' })}
+    </div>
+  )
+};
+
+<DataGrid
+  columns={columns}
+  rows={rows}
+  renderers={customRenderers}
+  selectedRows={selectedRows}
+  onSelectedRowsChange={setSelectedRows}
+/>
+```
+
+## TypeScript Types
+
+```typescript
+// Selection-related props
+interface DataGridProps<R, SR = unknown, K extends Key = Key> {
+  /** Set of selected row keys */
+  selectedRows?: Maybe<ReadonlySet<K>>;
+  
+  /** Callback when selection changes */
+  onSelectedRowsChange?: Maybe<(selectedRows: Set<K>) => void>;
+  
+  /** Function to disable selection for specific rows */
+  isRowSelectionDisabled?: Maybe<(row: R) => boolean>;
+  
+  /** Required for selection to work */
+  rowKeyGetter?: Maybe<(row: R) => K>;
+}
+
+// Selection event types
+interface SelectRowEvent<TRow> {
+  row: TRow;
+  checked: boolean;
+  isShiftClick: boolean;
+}
+
+interface SelectHeaderRowEvent {
+  checked: boolean;
+}
+
+// Hook return types
+function useRowSelection(): {
+  isRowSelectionDisabled: boolean;
+  isRowSelected: boolean;
+  onRowSelectionChange: (event: SelectRowEvent<R>) => void;
+};
+
+function useHeaderRowSelection(): {
+  isIndeterminate: boolean;
+  isRowSelected: boolean;
+  onRowSelectionChange: (event: SelectHeaderRowEvent) => void;
+};
+```
+
+## ARIA Support
+
+The grid automatically provides proper ARIA attributes for selection:
+
+```html
+<div role="grid" aria-multiselectable="true">
+  <div role="row" aria-selected="true">
+    <div role="gridcell">
+      <input type="checkbox" aria-label="Select" checked />
+    </div>
+  </div>
+</div>
+```

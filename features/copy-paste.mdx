@@ -1,0 +1,519 @@
+---
+title: Copy & Paste
+description: Enable copy and paste operations for grid cells
+---
+
+React Data Grid provides built-in support for copying cell values and pasting content back into editable cells using standard keyboard shortcuts.
+
+## Basic Usage
+
+Copy and paste work automatically when cells are editable:
+
+```tsx
+import { DataGrid, type Column, renderTextEditor } from 'react-data-grid';
+import { useState } from 'react';
+
+interface Row {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+}
+
+const columns: Column<Row>[] = [
+  { key: 'id', name: 'ID' },
+  {
+    key: 'name',
+    name: 'Name',
+    renderEditCell: renderTextEditor
+  },
+  {
+    key: 'email',
+    name: 'Email',
+    renderEditCell: renderTextEditor
+  },
+  {
+    key: 'phone',
+    name: 'Phone',
+    renderEditCell: renderTextEditor
+  }
+];
+
+function MyGrid() {
+  const [rows, setRows] = useState<Row[]>(initialRows);
+  
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      onRowsChange={setRows}
+    />
+  );
+}
+```
+
+<Tabs>
+  <Tab title="Copy">
+    **Keyboard**: `Ctrl+C` (Windows/Linux) or `Cmd+C` (Mac)
+    
+    - Select a cell
+    - Press copy shortcut
+    - Cell value is copied to clipboard
+  </Tab>
+  
+  <Tab title="Paste">
+    **Keyboard**: `Ctrl+V` (Windows/Linux) or `Cmd+V` (Mac)
+    
+    - Select an editable cell
+    - Press paste shortcut
+    - Clipboard content is pasted into cell
+    - `onRowsChange` is called with updated data
+  </Tab>
+</Tabs>
+
+<Note>
+Paste only works on editable cells. Non-editable cells ignore paste events.
+</Note>
+
+## Copy Behavior
+
+### Default Copy
+
+By default, the grid copies the raw cell value:
+
+```tsx
+// From src/DataGrid.tsx
+function handleCellCopy(event: CellClipboardEvent) {
+  if (!selectedCellIsWithinViewportBounds) return;
+  const { idx, rowIdx } = selectedPosition;
+  onCellCopy?.({ row: rows[rowIdx], column: columns[idx] }, event);
+}
+```
+
+The browser's default copy behavior is used, which typically copies `row[column.key]` as text.
+
+### Custom Copy Handler
+
+Customize what gets copied:
+
+```tsx
+import type { CellCopyArgs, CellClipboardEvent } from 'react-data-grid';
+
+function handleCellCopy(
+  { row, column }: CellCopyArgs<Row>,
+  event: CellClipboardEvent
+) {
+  const value = row[column.key as keyof Row];
+  
+  // Custom formatting
+  let copyText: string;
+  if (column.key === 'price') {
+    copyText = `$${value.toFixed(2)}`;
+  } else if (column.key === 'date') {
+    copyText = new Date(value).toLocaleDateString();
+  } else {
+    copyText = String(value);
+  }
+  
+  // Write to clipboard
+  event.clipboardData.setData('text/plain', copyText);
+  event.preventDefault();
+}
+
+<DataGrid
+  columns={columns}
+  rows={rows}
+  onCellCopy={handleCellCopy}
+/>
+```
+
+<Accordion title="Copy Multiple Formats">
+  Copy both plain text and rich content:
+  
+  ```tsx
+  function handleCellCopy(
+    { row, column }: CellCopyArgs<Row>,
+    event: CellClipboardEvent
+  ) {
+    const value = row[column.key as keyof Row];
+    
+    // Plain text
+    event.clipboardData.setData('text/plain', String(value));
+    
+    // HTML format
+    event.clipboardData.setData(
+      'text/html',
+      `<strong>${column.name}:</strong> ${value}`
+    );
+    
+    // JSON format
+    event.clipboardData.setData(
+      'application/json',
+      JSON.stringify({ [column.key]: value })
+    );
+    
+    event.preventDefault();
+  }
+  ```
+</Accordion>
+
+## Paste Behavior
+
+### Default Paste
+
+Pasting updates the cell with clipboard content:
+
+```tsx
+// From src/DataGrid.tsx
+function handleCellPaste(event: CellClipboardEvent) {
+  if (!onCellPaste || !onRowsChange || !isCellEditable(selectedPosition)) {
+    return;
+  }
+  
+  const { idx, rowIdx } = selectedPosition;
+  const column = columns[idx];
+  const updatedRow = onCellPaste({ row: rows[rowIdx], column }, event);
+  updateRow(column, rowIdx, updatedRow);
+}
+```
+
+By default, paste is **not enabled** unless you provide an `onCellPaste` handler.
+
+### Custom Paste Handler
+
+Implement paste with data transformation:
+
+```tsx
+import type { CellPasteArgs, CellClipboardEvent } from 'react-data-grid';
+
+function handleCellPaste(
+  { row, column }: CellPasteArgs<Row>,
+  event: CellClipboardEvent
+): Row {
+  const pastedText = event.clipboardData.getData('text/plain');
+  const columnKey = column.key as keyof Row;
+  
+  // Parse and validate based on column type
+  let parsedValue: any;
+  
+  if (column.key === 'email') {
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    parsedValue = emailRegex.test(pastedText) ? pastedText : row.email;
+  } else if (column.key === 'age') {
+    // Parse number
+    const num = parseInt(pastedText, 10);
+    parsedValue = !isNaN(num) && num > 0 ? num : row.age;
+  } else if (column.key === 'price') {
+    // Parse currency
+    const cleaned = pastedText.replace(/[$,]/g, '');
+    const num = parseFloat(cleaned);
+    parsedValue = !isNaN(num) ? num : row.price;
+  } else {
+    parsedValue = pastedText;
+  }
+  
+  return { ...row, [columnKey]: parsedValue };
+}
+
+<DataGrid
+  columns={columns}
+  rows={rows}
+  onRowsChange={setRows}
+  onCellPaste={handleCellPaste}
+/>
+```
+
+<Tip>
+Always return a new row object from `onCellPaste`. The grid will automatically call `onRowsChange` with the updated row.
+</Tip>
+
+## Copy/Paste with Validation
+
+Validate pasted data before updating:
+
+```tsx
+function handleCellPaste(
+  { row, column }: CellPasteArgs<Row>,
+  event: CellClipboardEvent
+): Row {
+  const pastedText = event.clipboardData.getData('text/plain').trim();
+  const columnKey = column.key as keyof Row;
+  
+  // Validation rules
+  const validators: Record<string, (value: string) => boolean> = {
+    email: (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+    phone: (v) => /^\d{10}$/.test(v.replace(/\D/g, '')),
+    url: (v) => /^https?:\/\//.test(v),
+    zipCode: (v) => /^\d{5}$/.test(v)
+  };
+  
+  const validator = validators[column.key];
+  
+  if (validator && !validator(pastedText)) {
+    // Invalid: show error or keep original value
+    console.warn(`Invalid value for ${column.key}: ${pastedText}`);
+    return row; // Don't update
+  }
+  
+  // Valid: update the row
+  return { ...row, [columnKey]: pastedText };
+}
+```
+
+<Accordion title="Validation with User Feedback">
+  Show validation errors to users:
+  
+  ```tsx
+  function MyGrid() {
+    const [rows, setRows] = useState<Row[]>(initialRows);
+    const [error, setError] = useState<string | null>(null);
+    
+    function handleCellPaste(
+      { row, column }: CellPasteArgs<Row>,
+      event: CellClipboardEvent
+    ): Row {
+      const pastedText = event.clipboardData.getData('text/plain').trim();
+      
+      if (column.key === 'email') {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pastedText)) {
+          setError('Invalid email format');
+          setTimeout(() => setError(null), 3000);
+          return row;
+        }
+      }
+      
+      setError(null);
+      return { ...row, [column.key]: pastedText };
+    }
+    
+    return (
+      <>
+        {error && (
+          <div style={{ padding: '8px', backgroundColor: '#ffebee', color: '#c62828' }}>
+            {error}
+          </div>
+        )}
+        <DataGrid
+          columns={columns}
+          rows={rows}
+          onRowsChange={setRows}
+          onCellPaste={handleCellPaste}
+        />
+      </>
+    );
+  }
+  ```
+</Accordion>
+
+## Copy/Paste with Data Transformation
+
+Transform data during copy/paste:
+
+```tsx
+function MyGrid() {
+  const [rows, setRows] = useState<Row[]>(initialRows);
+  
+  function handleCellCopy(
+    { row, column }: CellCopyArgs<Row>,
+    event: CellClipboardEvent
+  ) {
+    const value = row[column.key as keyof Row];
+    let copyText = String(value);
+    
+    // Transform for copying
+    if (column.key === 'status') {
+      // Copy status code instead of display text
+      const statusCodes: Record<string, string> = {
+        'Active': 'A',
+        'Inactive': 'I',
+        'Pending': 'P'
+      };
+      copyText = statusCodes[value] || value;
+    }
+    
+    event.clipboardData.setData('text/plain', copyText);
+    event.preventDefault();
+  }
+  
+  function handleCellPaste(
+    { row, column }: CellPasteArgs<Row>,
+    event: CellClipboardEvent
+  ): Row {
+    const pastedText = event.clipboardData.getData('text/plain').trim();
+    let value = pastedText;
+    
+    // Transform for pasting
+    if (column.key === 'status') {
+      // Convert status code to display text
+      const statusTexts: Record<string, string> = {
+        'A': 'Active',
+        'I': 'Inactive',
+        'P': 'Pending'
+      };
+      value = statusTexts[pastedText.toUpperCase()] || pastedText;
+    }
+    
+    return { ...row, [column.key]: value };
+  }
+  
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      onRowsChange={setRows}
+      onCellCopy={handleCellCopy}
+      onCellPaste={handleCellPaste}
+    />
+  );
+}
+```
+
+## Preventing Copy/Paste
+
+### Disable for Specific Columns
+
+Prevent copy/paste on sensitive columns:
+
+```tsx
+function handleCellCopy(
+  { column }: CellCopyArgs<Row>,
+  event: CellClipboardEvent
+) {
+  // Prevent copying password fields
+  if (column.key === 'password') {
+    event.preventDefault();
+    return;
+  }
+  
+  // Default behavior for other columns
+}
+
+function handleCellPaste(
+  { row, column }: CellPasteArgs<Row>,
+  event: CellClipboardEvent
+): Row {
+  // Prevent pasting into ID field
+  if (column.key === 'id') {
+    return row; // Don't update
+  }
+  
+  const pastedText = event.clipboardData.getData('text/plain');
+  return { ...row, [column.key]: pastedText };
+}
+```
+
+### Disable Globally
+
+Don't provide handlers to disable copy/paste:
+
+```tsx
+// Copy works (browser default)
+// Paste disabled (no handler)
+<DataGrid
+  columns={columns}
+  rows={rows}
+  onRowsChange={setRows}
+  // onCellCopy not provided
+  // onCellPaste not provided
+/>
+```
+
+## Limitations
+
+<Info>
+**Current Limitations**:
+
+1. **Single Cell Only**: Cannot copy/paste multiple cells or ranges
+2. **No Drag Selection**: Cannot select and copy multiple cells at once
+3. **Group Rows**: Copy/paste disabled on TreeDataGrid group rows
+4. **Summary Rows**: Copy/paste not available on summary rows
+5. **Read-Only Cells**: Paste only works on editable cells
+</Info>
+
+<Accordion title="TreeDataGrid Behavior">
+  From src/TreeDataGrid.tsx:
+  ```tsx
+  // Copy is prevented on group rows
+  function handleCellCopy(
+    { row, column }: CellCopyArgs<NoInfer<R>, NoInfer<SR>>,
+    event: CellClipboardEvent
+  ) {
+    if (!isGroupRow(row)) {
+      rawOnCellCopy?.({ row, column }, event);
+    }
+  }
+  
+  // Paste returns unchanged row for group rows
+  function handleCellPaste(
+    { row, column }: CellPasteArgs<NoInfer<R>, NoInfer<SR>>,
+    event: CellClipboardEvent
+  ) {
+    return isGroupRow(row) ? row : rawOnCellPaste!({ row, column }, event);
+  }
+  ```
+</Accordion>
+
+## API Reference
+
+### DataGrid Props
+
+#### onCellCopy
+
+```tsx
+onCellCopy?: (args: CellCopyArgs<R, SR>, event: CellClipboardEvent) => void
+```
+
+**Description**: Callback triggered when a cell's content is copied.
+
+**Parameters**:
+- `args`: Object containing row and column information
+- `event`: React clipboard event
+
+#### onCellPaste
+
+```tsx
+onCellPaste?: (args: CellPasteArgs<R, SR>, event: CellClipboardEvent) => R
+```
+
+**Description**: Callback triggered when content is pasted into a cell.
+
+**Parameters**:
+- `args`: Object containing row and column information
+- `event`: React clipboard event
+
+**Returns**: Updated row object. The grid will call `onRowsChange` with it.
+
+### Types
+
+#### CellCopyArgs
+
+```tsx
+interface CellCopyArgs<TRow, TSummaryRow = unknown> {
+  column: CalculatedColumn<TRow, TSummaryRow>;
+  row: TRow;
+}
+```
+
+#### CellPasteArgs
+
+```tsx
+interface CellPasteArgs<TRow, TSummaryRow = unknown> {
+  column: CalculatedColumn<TRow, TSummaryRow>;
+  row: TRow;
+}
+```
+
+#### CellClipboardEvent
+
+```tsx
+type CellClipboardEvent = React.ClipboardEvent<HTMLDivElement>;
+```
+
+Standard React clipboard event with `clipboardData` property.
+
+## Related Features
+
+- [Cell Editing](/features/cell-editing) - Edit cells before copying
+- [Keyboard Navigation](/features/keyboard-navigation) - Navigate to cells for copy/paste
+- [Custom Renderers](/features/custom-renderers) - Control displayed vs copied values

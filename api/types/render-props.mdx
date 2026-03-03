@@ -1,0 +1,418 @@
+---
+title: 'Render Props Types'
+description: 'RenderCellProps, RenderHeaderCellProps, RenderEditCellProps, and other render prop type definitions'
+---
+
+## RenderCellProps\<TRow, TSummaryRow\>
+
+Props passed to custom cell renderers.
+
+```typescript
+interface RenderCellProps<TRow, TSummaryRow = unknown> {
+  column: CalculatedColumn<TRow, TSummaryRow>;
+  row: TRow;
+  rowIdx: number;
+  isCellEditable: boolean;
+  tabIndex: number;
+  onRowChange: (row: TRow) => void;
+}
+```
+
+### Properties
+
+<ParamField path="column" type="CalculatedColumn<TRow, TSummaryRow>" required>
+  The column object for this cell.
+</ParamField>
+
+<ParamField path="row" type="TRow" required>
+  The row object for this cell.
+</ParamField>
+
+<ParamField path="rowIdx" type="number" required>
+  The row index.
+</ParamField>
+
+<ParamField path="isCellEditable" type="boolean" required>
+  Whether the cell is editable.
+</ParamField>
+
+<ParamField path="tabIndex" type="number" required>
+  The tab index for keyboard navigation.
+</ParamField>
+
+<ParamField path="onRowChange" type="(row: TRow) => void" required>
+  Callback to update the row.
+</ParamField>
+
+---
+
+## RenderHeaderCellProps\<TRow, TSummaryRow\>
+
+Props passed to custom header cell renderers.
+
+```typescript
+interface RenderHeaderCellProps<TRow, TSummaryRow = unknown> {
+  column: CalculatedColumn<TRow, TSummaryRow>;
+  sortDirection: SortDirection | undefined;
+  priority: number | undefined;
+  tabIndex: number;
+}
+```
+
+### Properties
+
+<ParamField path="column" type="CalculatedColumn<TRow, TSummaryRow>" required>
+  The column object for this header cell.
+</ParamField>
+
+<ParamField path="sortDirection" type="SortDirection | undefined" required>
+  The current sort direction ('ASC' or 'DESC'), or undefined if not sorted.
+</ParamField>
+
+<ParamField path="priority" type="number | undefined" required>
+  The sort priority for multi-column sorting, or undefined if not sorted.
+</ParamField>
+
+<ParamField path="tabIndex" type="number" required>
+  The tab index for keyboard navigation.
+</ParamField>
+
+---
+
+## RenderEditCellProps\<TRow, TSummaryRow\>
+
+Props passed to custom edit cell renderers (editors).
+
+```typescript
+interface RenderEditCellProps<TRow, TSummaryRow = unknown> {
+  column: CalculatedColumn<TRow, TSummaryRow>;
+  row: TRow;
+  rowIdx: number;
+  onRowChange: (row: TRow, commitChanges?: boolean) => void;
+  onClose: (commitChanges?: boolean, shouldFocusCell?: boolean) => void;
+}
+```
+
+### Properties
+
+<ParamField path="column" type="CalculatedColumn<TRow, TSummaryRow>" required>
+  The column object for this cell.
+</ParamField>
+
+<ParamField path="row" type="TRow" required>
+  The row object for this cell.
+</ParamField>
+
+<ParamField path="rowIdx" type="number" required>
+  The row index.
+</ParamField>
+
+<ParamField path="onRowChange" type="(row: TRow, commitChanges?: boolean) => void" required>
+  Callback to update the row. Pass `true` for `commitChanges` to close the editor.
+</ParamField>
+
+<ParamField path="onClose" type="(commitChanges?: boolean, shouldFocusCell?: boolean) => void" required>
+  Callback to close the editor. Pass `true` for `commitChanges` to save changes, `false` to discard.
+  Pass `true` for `shouldFocusCell` to return focus to the cell.
+</ParamField>
+
+---
+
+## RenderSummaryCellProps\<TSummaryRow, TRow\>
+
+Props passed to summary cell renderers.
+
+```typescript
+interface RenderSummaryCellProps<TSummaryRow, TRow = unknown> {
+  column: CalculatedColumn<TRow, TSummaryRow>;
+  row: TSummaryRow;
+  tabIndex: number;
+}
+```
+
+### Properties
+
+<ParamField path="column" type="CalculatedColumn<TRow, TSummaryRow>" required>
+  The column object for this summary cell.
+</ParamField>
+
+<ParamField path="row" type="TSummaryRow" required>
+  The summary row object.
+</ParamField>
+
+<ParamField path="tabIndex" type="number" required>
+  The tab index for keyboard navigation.
+</ParamField>
+
+---
+
+## RenderGroupCellProps\<TRow, TSummaryRow\>
+
+Props passed to group cell renderers when using `TreeDataGrid`.
+
+```typescript
+interface RenderGroupCellProps<TRow, TSummaryRow = unknown> {
+  groupKey: unknown;
+  column: CalculatedColumn<TRow, TSummaryRow>;
+  row: GroupRow<TRow>;
+  childRows: readonly TRow[];
+  isExpanded: boolean;
+  tabIndex: number;
+  toggleGroup: () => void;
+}
+```
+
+### Properties
+
+<ParamField path="groupKey" type="unknown" required>
+  The group key value.
+</ParamField>
+
+<ParamField path="column" type="CalculatedColumn<TRow, TSummaryRow>" required>
+  The column object for this group cell.
+</ParamField>
+
+<ParamField path="row" type="GroupRow<TRow>" required>
+  The group row object.
+</ParamField>
+
+<ParamField path="childRows" type="readonly TRow[]" required>
+  Array of child rows in this group.
+</ParamField>
+
+<ParamField path="isExpanded" type="boolean" required>
+  Whether the group is expanded.
+</ParamField>
+
+<ParamField path="tabIndex" type="number" required>
+  The tab index for keyboard navigation.
+</ParamField>
+
+<ParamField path="toggleGroup" type="() => void" required>
+  Callback to toggle the group expansion state.
+</ParamField>
+
+---
+
+## RenderRowProps\<TRow, TSummaryRow\>
+
+Props passed to custom row renderers.
+
+```typescript
+interface RenderRowProps<TRow, TSummaryRow = unknown> extends BaseRenderRowProps<TRow, TSummaryRow> {
+  row: TRow;
+  lastFrozenColumnIndex: number;
+  draggedOverCellIdx: number | undefined;
+  selectedCellEditor: ReactElement<RenderEditCellProps<TRow>> | undefined;
+  onRowChange: (column: CalculatedColumn<TRow, TSummaryRow>, rowIdx: number, newRow: TRow) => void;
+  rowClass: Maybe<(row: TRow, rowIdx: number) => Maybe<string>>;
+  isTreeGrid: boolean;
+}
+```
+
+### Properties
+
+<ParamField path="row" type="TRow" required>
+  The row object.
+</ParamField>
+
+<ParamField path="viewportColumns" type="readonly CalculatedColumn<TRow, TSummaryRow>[]" required>
+  Array of visible columns in the viewport.
+</ParamField>
+
+<ParamField path="rowIdx" type="number" required>
+  The row index.
+</ParamField>
+
+<ParamField path="selectedCellIdx" type="number | undefined" required>
+  Index of the selected cell in this row, or undefined if no cell is selected.
+</ParamField>
+
+<ParamField path="isRowSelected" type="boolean" required>
+  Whether the row is selected.
+</ParamField>
+
+<ParamField path="isRowSelectionDisabled" type="boolean" required>
+  Whether row selection is disabled for this row.
+</ParamField>
+
+<ParamField path="gridRowStart" type="number" required>
+  CSS grid-row-start value.
+</ParamField>
+
+<ParamField path="lastFrozenColumnIndex" type="number" required>
+  Index of the last frozen column.
+</ParamField>
+
+<ParamField path="draggedOverCellIdx" type="number | undefined" required>
+  Index of the cell being dragged over, or undefined.
+</ParamField>
+
+<ParamField path="selectedCellEditor" type="ReactElement<RenderEditCellProps<TRow>> | undefined" required>
+  The editor element for the selected cell, or undefined.
+</ParamField>
+
+<ParamField path="onRowChange" type="(column: CalculatedColumn<TRow, TSummaryRow>, rowIdx: number, newRow: TRow) => void" required>
+  Callback to update the row.
+</ParamField>
+
+<ParamField path="rowClass" type="(row: TRow, rowIdx: number) => Maybe<string>" required>
+  Function to determine row class names.
+</ParamField>
+
+<ParamField path="isTreeGrid" type="boolean" required>
+  Whether this is a tree grid.
+</ParamField>
+
+---
+
+## CellRendererProps\<TRow, TSummaryRow\>
+
+Props passed to the cell renderer when using `renderers.renderCell`.
+
+```typescript
+interface CellRendererProps<TRow, TSummaryRow> extends BaseCellRendererProps<TRow, TSummaryRow> {
+  column: CalculatedColumn<TRow, TSummaryRow>;
+  row: TRow;
+  colSpan: number | undefined;
+  isDraggedOver: boolean;
+  isCellSelected: boolean;
+  onRowChange: (column: CalculatedColumn<TRow, TSummaryRow>, newRow: TRow) => void;
+}
+```
+
+### Properties
+
+<ParamField path="column" type="CalculatedColumn<TRow, TSummaryRow>" required>
+  The column object for this cell.
+</ParamField>
+
+<ParamField path="row" type="TRow" required>
+  The row object for this cell.
+</ParamField>
+
+<ParamField path="rowIdx" type="number" required>
+  The row index.
+</ParamField>
+
+<ParamField path="colSpan" type="number | undefined" required>
+  Number of columns this cell spans, or undefined.
+</ParamField>
+
+<ParamField path="isDraggedOver" type="boolean" required>
+  Whether this cell is being dragged over.
+</ParamField>
+
+<ParamField path="isCellSelected" type="boolean" required>
+  Whether this cell is selected.
+</ParamField>
+
+<ParamField path="onRowChange" type="(column: CalculatedColumn<TRow, TSummaryRow>, newRow: TRow) => void" required>
+  Callback to update the row.
+</ParamField>
+
+<ParamField path="selectCell" type="(position: Position, options?: SelectCellOptions) => void" required>
+  Callback to select a cell.
+</ParamField>
+
+---
+
+## RenderCheckboxProps
+
+Props for custom checkbox renderers.
+
+```typescript
+interface RenderCheckboxProps extends Pick<
+  React.ComponentProps<'input'>,
+  'aria-label' | 'aria-labelledby' | 'checked' | 'tabIndex' | 'disabled'
+> {
+  indeterminate?: boolean | undefined;
+  onChange: (checked: boolean, shift: boolean) => void;
+}
+```
+
+### Properties
+
+<ParamField path="checked" type="boolean" required>
+  Whether the checkbox is checked.
+</ParamField>
+
+<ParamField path="indeterminate" type="boolean">
+  Whether the checkbox is in an indeterminate state.
+</ParamField>
+
+<ParamField path="disabled" type="boolean">
+  Whether the checkbox is disabled.
+</ParamField>
+
+<ParamField path="onChange" type="(checked: boolean, shift: boolean) => void" required>
+  Change handler. The second parameter indicates if shift key was pressed.
+</ParamField>
+
+<ParamField path="tabIndex" type="number" required>
+  Tab index for keyboard navigation.
+</ParamField>
+
+<ParamField path="aria-label" type="string">
+  Accessible label for the checkbox.
+</ParamField>
+
+<ParamField path="aria-labelledby" type="string">
+  ID of the element that labels the checkbox.
+</ParamField>
+
+---
+
+## RenderSortStatusProps
+
+Props for custom sort status renderers.
+
+```typescript
+interface RenderSortStatusProps extends RenderSortIconProps, RenderSortPriorityProps {}
+```
+
+### Properties
+
+<ParamField path="sortDirection" type="SortDirection | undefined" required>
+  The current sort direction ('ASC' or 'DESC'), or undefined if not sorted.
+</ParamField>
+
+<ParamField path="priority" type="number | undefined" required>
+  The sort priority for multi-column sorting, or undefined if not sorted.
+</ParamField>
+
+---
+
+## RenderSortIconProps
+
+Props for custom sort icon renderers.
+
+```typescript
+interface RenderSortIconProps {
+  sortDirection: SortDirection | undefined;
+}
+```
+
+### Properties
+
+<ParamField path="sortDirection" type="SortDirection | undefined" required>
+  The current sort direction ('ASC' or 'DESC'), or undefined if not sorted.
+</ParamField>
+
+---
+
+## RenderSortPriorityProps
+
+Props for custom sort priority renderers.
+
+```typescript
+interface RenderSortPriorityProps {
+  priority: number | undefined;
+}
+```
+
+### Properties
+
+<ParamField path="priority" type="number | undefined" required>
+  The sort priority for multi-column sorting, or undefined if not sorted.
+</ParamField>

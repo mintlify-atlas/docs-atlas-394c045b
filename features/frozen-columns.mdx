@@ -1,0 +1,463 @@
+---
+title: Frozen Columns
+description: Pin columns to keep them visible during horizontal scrolling
+---
+
+Frozen columns remain visible on the left side (or right side in RTL mode) of the grid while other columns scroll horizontally. This is useful for keeping important columns like IDs or names always visible.
+
+## Basic Usage
+
+Mark columns as frozen using the `frozen` property:
+
+```tsx
+import { DataGrid, type Column } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  name: string;
+  email: string;
+  department: string;
+  salary: number;
+}
+
+const columns: Column<Row>[] = [
+  { key: 'id', name: 'ID', width: 80, frozen: true },
+  { key: 'name', name: 'Name', width: 200, frozen: true },
+  { key: 'email', name: 'Email', width: 250 },
+  { key: 'department', name: 'Department', width: 200 },
+  { key: 'salary', name: 'Salary', width: 150 }
+];
+
+function MyGrid() {
+  return <DataGrid columns={columns} rows={rows} />;
+}
+```
+
+<Accordion title="Visual Behavior">
+  With the above configuration:
+  - **ID** and **Name** columns stay fixed on the left
+  - **Email**, **Department**, and **Salary** scroll horizontally
+  - A shadow appears on the edge of the last frozen column to indicate the freeze boundary
+</Accordion>
+
+## Multiple Frozen Columns
+
+You can freeze multiple consecutive columns:
+
+```tsx
+const columns: Column<Row>[] = [
+  { key: 'id', name: 'ID', frozen: true },
+  { key: 'name', name: 'Name', frozen: true },
+  { key: 'status', name: 'Status', frozen: true },
+  { key: 'col1', name: 'Column 1' },
+  { key: 'col2', name: 'Column 2' },
+  // ... more scrollable columns
+];
+```
+
+<Note>
+Frozen columns must be consecutive and start from the beginning of the columns array. You cannot freeze columns in the middle or at the end.
+</Note>
+
+<Tabs>
+  <Tab title="Valid Configuration">
+    ```tsx
+    const columns: Column<Row>[] = [
+      { key: 'id', name: 'ID', frozen: true },
+      { key: 'name', name: 'Name', frozen: true },
+      { key: 'email', name: 'Email' }, // Not frozen
+      { key: 'phone', name: 'Phone' }  // Not frozen
+    ];
+    ```
+    
+    Frozen columns are at the start and consecutive.
+  </Tab>
+  
+  <Tab title="Invalid Configuration">
+    ```tsx
+    const columns: Column<Row>[] = [
+      { key: 'id', name: 'ID', frozen: true },
+      { key: 'name', name: 'Name' },        // Gap!
+      { key: 'email', name: 'Email', frozen: true }, // Won't work as expected
+    ];
+    ```
+    
+    Frozen columns must be consecutive from the start.
+  </Tab>
+</Tabs>
+
+## Frozen Column Shadow
+
+The grid automatically adds a visual shadow to indicate the boundary between frozen and scrollable columns:
+
+```tsx
+// From src/DataGrid.tsx - shadow is automatically rendered
+{lastFrozenColumnIndex > -1 && (
+  <div
+    className={frozenColumnShadowClassname}
+    style={{
+      gridColumnStart: lastFrozenColumnIndex + 2,
+      insetInlineStart: totalFrozenColumnWidth
+    }}
+  />
+)}
+```
+
+The shadow provides a visual cue showing where the frozen area ends.
+
+<Accordion title="Customizing the Shadow">
+  You can customize the shadow appearance using CSS:
+  
+  ```css
+  .rdg-frozen-column-shadow {
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Dark mode */
+  .rdg-dark .rdg-frozen-column-shadow {
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
+  }
+  ```
+</Accordion>
+
+## RTL (Right-to-Left) Support
+
+In RTL mode, frozen columns are pinned to the right side:
+
+```tsx
+<DataGrid
+  columns={columns}
+  rows={rows}
+  direction="rtl"
+/>
+```
+
+<Info>
+When `direction="rtl"` is set:
+- Frozen columns appear on the **right** side
+- Scrollbar moves to the left
+- Column resize handles appear on the left edge
+- The frozen column shadow appears on the left side of frozen columns
+</Info>
+
+## Frozen Columns with Selection
+
+The `SelectColumn` can be frozen like any other column:
+
+```tsx
+import { DataGrid, SelectColumn, type Column } from 'react-data-grid';
+
+const columns: Column<Row>[] = [
+  { ...SelectColumn, frozen: true },
+  { key: 'id', name: 'ID', frozen: true },
+  { key: 'name', name: 'Name' },
+  // ... more columns
+];
+```
+
+<Accordion title="Row Selection with Frozen Columns">
+  ```tsx
+  import { useState } from 'react';
+  import { DataGrid, SelectColumn } from 'react-data-grid';
+  
+  function MyGrid() {
+    const [selectedRows, setSelectedRows] = useState<ReadonlySet<number>>(new Set());
+    
+    const columns = [
+      { ...SelectColumn, frozen: true },
+      { key: 'id', name: 'ID', width: 80, frozen: true },
+      { key: 'name', name: 'Name', width: 200, frozen: true },
+      { key: 'email', name: 'Email', width: 250 },
+      { key: 'department', name: 'Department', width: 200 }
+    ];
+    
+    return (
+      <DataGrid
+        columns={columns}
+        rows={rows}
+        rowKeyGetter={(row) => row.id}
+        selectedRows={selectedRows}
+        onSelectedRowsChange={setSelectedRows}
+      />
+    );
+  }
+  ```
+  
+  The selection checkbox stays visible while scrolling horizontally.
+</Accordion>
+
+## Frozen Columns and Features
+
+### Resizable Frozen Columns
+
+Frozen columns can be resized:
+
+```tsx
+const columns: Column<Row>[] = [
+  {
+    key: 'id',
+    name: 'ID',
+    width: 80,
+    frozen: true,
+    resizable: true
+  },
+  {
+    key: 'name',
+    name: 'Name',
+    width: 200,
+    frozen: true,
+    resizable: true
+  }
+];
+```
+
+### Sortable Frozen Columns
+
+Frozen columns support sorting:
+
+```tsx
+const columns: Column<Row>[] = [
+  {
+    key: 'id',
+    name: 'ID',
+    frozen: true,
+    sortable: true
+  },
+  {
+    key: 'name',
+    name: 'Name',
+    frozen: true,
+    sortable: true
+  }
+];
+```
+
+### Editable Frozen Columns
+
+Frozen columns can be editable:
+
+```tsx
+import { renderTextEditor } from 'react-data-grid';
+
+const columns: Column<Row>[] = [
+  {
+    key: 'name',
+    name: 'Name',
+    frozen: true,
+    renderEditCell: renderTextEditor
+  }
+];
+```
+
+<Tip>
+**All column features work with frozen columns:**
+- Resizing
+- Sorting
+- Editing
+- Custom renderers
+- Cell spanning
+- Column classes
+</Tip>
+
+## Frozen Columns in TreeDataGrid
+
+In `TreeDataGrid`, group columns are automatically frozen:
+
+```tsx
+import { TreeDataGrid, type Column } from 'react-data-grid';
+
+const columns: Column<Row>[] = [
+  { key: 'country', name: 'Country' }, // Auto-frozen when used in groupBy
+  { key: 'city', name: 'City' },       // Auto-frozen when used in groupBy
+  { key: 'name', name: 'Name' },
+  { key: 'value', name: 'Value' }
+];
+
+function MyTreeGrid() {
+  const [expandedGroupIds, setExpandedGroupIds] = useState<ReadonlySet<unknown>>(new Set());
+  
+  return (
+    <TreeDataGrid
+      columns={columns}
+      rows={rows}
+      groupBy={['country', 'city']} // These columns are automatically frozen
+      rowGrouper={rowGrouper}
+      expandedGroupIds={expandedGroupIds}
+      onExpandedGroupIdsChange={setExpandedGroupIds}
+    />
+  );
+}
+```
+
+<Info>
+From the source code (src/TreeDataGrid.tsx):
+```tsx
+for (const [index, column] of columns.entries()) {
+  if (rawGroupBy.includes(column.key)) {
+    groupBy.push(column.key);
+    columns[index] = {
+      ...column,
+      frozen: true, // Automatically frozen
+      renderCell: () => null,
+      renderGroupCell: column.renderGroupCell ?? renderToggleGroup,
+      editable: false
+    };
+  }
+}
+```
+Columns used in `groupBy` are automatically marked as `frozen: true`.
+</Info>
+
+## Performance Considerations
+
+<Accordion title="Frozen Columns and Virtualization">
+  Frozen columns are always rendered, even with column virtualization enabled:
+  
+  ```tsx
+  // From src/hooks/useViewportColumns.ts (conceptual)
+  const viewportColumns = [
+    ...frozenColumns,           // Always included
+    ...visibleScrollableColumns // Only visible ones
+  ];
+  ```
+  
+  This means:
+  - Frozen columns do not affect horizontal scroll performance
+  - More frozen columns = slightly more initial render work
+  - Generally, 1-5 frozen columns have negligible impact
+  - Avoid freezing 10+ columns as they bypass virtualization
+</Accordion>
+
+<Tip>
+**Best Practices:**
+- Freeze 1-3 key columns (ID, name, status)
+- Avoid freezing many wide columns
+- Use frozen columns for data users need constant access to
+- Consider responsive design: fewer frozen columns on mobile
+</Tip>
+
+## Styling Frozen Columns
+
+Apply custom styles to frozen columns:
+
+```tsx
+const columns: Column<Row>[] = [
+  {
+    key: 'id',
+    name: 'ID',
+    frozen: true,
+    cellClass: 'frozen-cell',
+    headerCellClass: 'frozen-header'
+  }
+];
+```
+
+```css
+.frozen-cell {
+  background-color: #f9f9f9;
+  font-weight: 600;
+}
+
+.frozen-header {
+  background-color: #e8e8e8;
+  font-weight: bold;
+}
+
+/* Dark mode */
+.rdg-dark .frozen-cell {
+  background-color: #2a2a2a;
+}
+
+.rdg-dark .frozen-header {
+  background-color: #1a1a1a;
+}
+```
+
+<Accordion title="Sticky Appearance">
+  Make frozen columns more visually distinct:
+  
+  ```css
+  .frozen-cell {
+    background-color: #f0f7ff;
+    border-right: 2px solid #0066cc;
+    position: sticky;
+    z-index: 1;
+  }
+  
+  .frozen-header {
+    background-color: #e6f2ff;
+    border-right: 2px solid #0066cc;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+  ```
+</Accordion>
+
+## Accessibility
+
+Frozen columns maintain proper ARIA attributes:
+
+```tsx
+// The grid automatically sets appropriate aria-colindex values
+<div
+  role="gridcell"
+  aria-colindex={1} // Correct index regardless of scroll position
+>
+  Cell content
+</div>
+```
+
+Screen readers announce frozen columns correctly when navigating the grid.
+
+## API Reference
+
+### Column Property
+
+#### frozen
+
+```tsx
+frozen?: boolean
+```
+
+**Default**: `false`
+
+**Description**: Determines whether the column is frozen (pinned). Frozen columns remain visible during horizontal scrolling.
+
+**Requirements**:
+- Frozen columns must be consecutive
+- Frozen columns must start from the beginning of the columns array
+- In RTL mode, frozen columns are pinned to the right
+
+**Usage**:
+
+```tsx
+const columns: Column<Row>[] = [
+  { key: 'id', name: 'ID', frozen: true },
+  { key: 'name', name: 'Name', frozen: true },
+  { key: 'email', name: 'Email' }
+];
+```
+
+### DataGrid Props
+
+#### direction
+
+```tsx
+direction?: 'ltr' | 'rtl'
+```
+
+**Default**: `'ltr'`
+
+**Description**: Text direction of the grid. In RTL mode, frozen columns are pinned to the right side.
+
+**Effects**:
+- `'ltr'`: Frozen columns on left, scrollbar on right
+- `'rtl'`: Frozen columns on right, scrollbar on left
+
+## Related Features
+
+- [Column Resizing](/features/column-resizing) - Resize frozen columns
+- [Row Grouping](/features/row-grouping) - Group columns are automatically frozen
+- [Virtualization](/features/virtualization) - Frozen columns bypass horizontal virtualization

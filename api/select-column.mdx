@@ -1,0 +1,90 @@
+---
+title: SelectColumn
+description: Pre-configured column for row selection with checkbox renderers
+---
+
+## Overview
+
+`SelectColumn` is a pre-configured column that provides row selection functionality with built-in checkbox renderers for header, regular rows, and grouped rows.
+
+## Usage
+
+```tsx
+import { DataGrid, SelectColumn, type Column } from 'react-data-grid';
+
+const columns: readonly Column<Row>[] = [SelectColumn, ...otherColumns];
+
+function rowKeyGetter(row: Row) {
+  return row.id;
+}
+
+function MyGrid() {
+  const [selectedRows, setSelectedRows] = useState((): ReadonlySet<number> => new Set());
+
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      rowKeyGetter={rowKeyGetter}
+      selectedRows={selectedRows}
+      onSelectedRowsChange={setSelectedRows}
+    />
+  );
+}
+```
+
+<Note>
+The `rowKeyGetter` prop is required for row selection to work properly.
+</Note>
+
+## Column Properties
+
+The `SelectColumn` has the following properties:
+
+- **key**: `SELECT_COLUMN_KEY` (`'rdg-select-column'`)
+- **name**: Empty string (no header text)
+- **width**: 35px (fixed)
+- **minWidth**: 35px
+- **maxWidth**: 35px
+- **resizable**: `false`
+- **sortable**: `false`
+- **frozen**: `true` (always pinned to the start edge)
+
+## Custom Renderers
+
+SelectColumn includes three custom renderers:
+
+### Header Renderer
+
+Renders a "Select All" checkbox in the header that:
+- Shows indeterminate state when some rows are selected
+- Selects/deselects all rows when clicked
+- Uses `useHeaderRowSelection()` hook internally
+
+### Cell Renderer
+
+Renders a checkbox for each row that:
+- Reflects the row's selection state
+- Supports shift-click for range selection
+- Can be disabled per row via `isRowSelectionDisabled` prop
+- Uses `useRowSelection()` hook internally
+
+### Group Cell Renderer
+
+Renders a checkbox for group rows when using `TreeDataGrid` that selects/deselects all rows in the group.
+
+## SELECT_COLUMN_KEY
+
+A constant string (`'rdg-select-column'`) used as the key for the SelectColumn. Useful for identifying or filtering the select column.
+
+```tsx
+import { SELECT_COLUMN_KEY } from 'react-data-grid';
+
+const nonSelectColumns = columns.filter((column) => column.key !== SELECT_COLUMN_KEY);
+```
+
+## Related
+
+- [Row Selection](/core-concepts/selection) - Learn about row selection features
+- [useRowSelection](/api/use-row-selection) - Hook for custom selection cells
+- [useHeaderRowSelection](/api/use-header-row-selection) - Hook for custom header selection

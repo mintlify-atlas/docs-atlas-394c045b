@@ -1,0 +1,366 @@
+---
+title: Sorting Columns
+description: Enable single and multi-column sorting
+---
+
+## Overview
+
+React Data Grid provides controlled sorting functionality. The grid handles UI interactions but you control the actual row ordering, giving you flexibility to implement server-side or client-side sorting.
+
+## Basic Setup
+
+Enable sorting by marking columns as sortable and managing sort state:
+
+```tsx
+import { useState } from 'react';
+import { DataGrid, type Column, type SortColumn } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  name: string;
+  email: string;
+}
+
+const columns: readonly Column<Row>[] = [
+  { key: 'id', name: 'ID', sortable: true },
+  { key: 'name', name: 'Name', sortable: true },
+  { key: 'email', name: 'Email', sortable: true }
+];
+
+function MyGrid() {
+  const [rows, setRows] = useState(initialRows);
+  const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>([]);
+
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      sortColumns={sortColumns}
+      onSortColumnsChange={setSortColumns}
+    />
+  );
+}
+```
+
+<Note>
+  Sorting is **controlled**: the grid does not reorder rows automatically. You must apply sorting logic to your rows based on `sortColumns`.
+</Note>
+
+## Column Configuration
+
+<ParamField path="sortable" type="boolean" default={false}>
+  Enable sorting for the column. Click the header to toggle sort direction.
+</ParamField>
+
+<ParamField path="sortDescendingFirst" type="boolean" default={false}>
+  Start with descending order on first click instead of ascending.
+  
+  ```tsx
+  const columns: Column<Row>[] = [
+    {
+      key: 'date',
+      name: 'Date',
+      sortable: true,
+      sortDescendingFirst: true // Click once for newest first
+    }
+  ];
+  ```
+</ParamField>
+
+## Sort Props
+
+<ParamField path="sortColumns" type="readonly SortColumn[]">
+  Array of currently sorted columns. Each entry contains:
+  - `columnKey`: The column's key
+  - `direction`: Either `'ASC'` or `'DESC'`
+</ParamField>
+
+<ParamField path="onSortColumnsChange" type="(sortColumns: SortColumn[]) => void">
+  Callback triggered when sorting changes.
+</ParamField>
+
+## Implementing Sort Logic
+
+Apply sorting to your rows:
+
+```tsx
+import { useMemo, useState } from 'react';
+import { DataGrid, type SortColumn } from 'react-data-grid';
+
+function MyGrid() {
+  const [rows, setRows] = useState(initialRows);
+  const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>([]);
+
+  const sortedRows = useMemo(() => {
+    if (sortColumns.length === 0) return rows;
+
+    return [...rows].sort((a, b) => {
+      for (const sort of sortColumns) {
+        const { columnKey, direction } = sort;
+        const aValue = a[columnKey as keyof Row];
+        const bValue = b[columnKey as keyof Row];
+
+        if (aValue < bValue) {
+          return direction === 'ASC' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return direction === 'ASC' ? 1 : -1;
+        }
+      }
+      return 0;
+    });
+  }, [rows, sortColumns]);
+
+  return (
+    <DataGrid
+      columns={columns}
+      rows={sortedRows}
+      sortColumns={sortColumns}
+      onSortColumnsChange={setSortColumns}
+    />
+  );
+}
+```
+
+## Multi-Column Sorting
+
+By default, the grid supports multi-column sorting with `Ctrl + Click` (or `Cmd + Click` on Mac):
+
+```tsx
+// Click column header: Sort by that column
+// Ctrl + Click another header: Add secondary sort
+// Click sorted header again: Reverse direction
+// Click sorted header third time: Remove from sort
+```
+
+The grid displays sort priority numbers when multiple columns are sorted.
+
+### Disable Multi-Column Sorting
+
+Limit to single-column sorting:
+
+```tsx
+function onSortColumnsChange(sortColumns: SortColumn[]) {
+  setSortColumns(sortColumns.slice(-1)); // Keep only the last sorted column
+}
+
+<DataGrid
+  columns={columns}
+  rows={rows}
+  sortColumns={sortColumns}
+  onSortColumnsChange={onSortColumnsChange}
+/>
+```
+
+## Sort Direction Types
+
+```typescript
+type SortDirection = 'ASC' | 'DESC';
+
+interface SortColumn {
+  readonly columnKey: string;
+  readonly direction: SortDirection;
+}
+```
+
+## Custom Sort Icons
+
+Customize the sort indicator appearance:
+
+```tsx
+import {
+  DataGrid,
+  renderSortIcon,
+  renderSortPriority,
+  type Renderers,
+  type RenderSortStatusProps
+} from 'react-data-grid';
+
+function CustomSortStatus(props: RenderSortStatusProps) {
+  return (
+    <div className="custom-sort">
+      {renderSortIcon(props)}
+      {renderSortPriority(props)}
+    </div>
+  );
+}
+
+const customRenderers: Renderers<Row, SummaryRow> = {
+  renderSortStatus: CustomSortStatus
+};
+
+<DataGrid
+  columns={columns}
+  rows={rows}
+  renderers={customRenderers}
+  sortColumns={sortColumns}
+  onSortColumnsChange={setSortColumns}
+/>
+```
+
+## Custom Header Cell
+
+Full control over header rendering:
+
+```tsx
+import { type RenderHeaderCellProps } from 'react-data-grid';
+
+function CustomHeader({ column, sortDirection }: RenderHeaderCellProps<Row>) {
+  return (
+    <div className="custom-header">
+      {column.name}
+      {sortDirection && (
+        <span className="sort-indicator">
+          {sortDirection === 'ASC' ? ' ↑' : ' ↓'}
+        </span>
+      )}
+    </div>
+  );
+}
+
+const columns: Column<Row>[] = [
+  {
+    key: 'name',
+    name: 'Name',
+    sortable: true,
+    renderHeaderCell: CustomHeader
+  }
+];
+```
+
+## Server-Side Sorting
+
+Implement server-side sorting by fetching data when sort changes:
+
+```tsx
+import { useEffect, useState } from 'react';
+import { DataGrid, type SortColumn } from 'react-data-grid';
+
+function MyGrid() {
+  const [rows, setRows] = useState([]);
+  const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        sortColumns.forEach((sort) => {
+          params.append('sort', `${sort.columnKey}:${sort.direction.toLowerCase()}`);
+        });
+        
+        const response = await fetch(`/api/data?${params}`);
+        const data = await response.json();
+        setRows(data);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [sortColumns]);
+
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      sortColumns={sortColumns}
+      onSortColumnsChange={setSortColumns}
+    />
+  );
+}
+```
+
+## Advanced Sorting
+
+### Case-Insensitive String Sorting
+
+```tsx
+const sortedRows = useMemo(() => {
+  if (sortColumns.length === 0) return rows;
+
+  return [...rows].sort((a, b) => {
+    for (const sort of sortColumns) {
+      const { columnKey, direction } = sort;
+      const aValue = a[columnKey as keyof Row];
+      const bValue = b[columnKey as keyof Row];
+
+      // Handle strings case-insensitively
+      const aCompare = typeof aValue === 'string' ? aValue.toLowerCase() : aValue;
+      const bCompare = typeof bValue === 'string' ? bValue.toLowerCase() : bValue;
+
+      if (aCompare < bCompare) {
+        return direction === 'ASC' ? -1 : 1;
+      }
+      if (aCompare > bCompare) {
+        return direction === 'ASC' ? 1 : -1;
+      }
+    }
+    return 0;
+  });
+}, [rows, sortColumns]);
+```
+
+### Null/Undefined Handling
+
+```tsx
+const sortedRows = useMemo(() => {
+  if (sortColumns.length === 0) return rows;
+
+  return [...rows].sort((a, b) => {
+    for (const sort of sortColumns) {
+      const { columnKey, direction } = sort;
+      const aValue = a[columnKey as keyof Row];
+      const bValue = b[columnKey as keyof Row];
+
+      // Handle null/undefined - push to end
+      if (aValue == null && bValue == null) continue;
+      if (aValue == null) return 1;
+      if (bValue == null) return -1;
+
+      if (aValue < bValue) {
+        return direction === 'ASC' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return direction === 'ASC' ? 1 : -1;
+      }
+    }
+    return 0;
+  });
+}, [rows, sortColumns]);
+```
+
+## TypeScript Types
+
+```typescript
+interface SortColumn {
+  readonly columnKey: string;
+  readonly direction: SortDirection;
+}
+
+type SortDirection = 'ASC' | 'DESC';
+
+interface DataGridProps<R, SR = unknown, K extends Key = Key> {
+  /** Array of sorted columns */
+  sortColumns?: Maybe<readonly SortColumn[]>;
+  
+  /** Callback when sorting changes */
+  onSortColumnsChange?: Maybe<(sortColumns: SortColumn[]) => void>;
+}
+
+interface Column<TRow, TSummaryRow = unknown> {
+  /** Enable sorting for this column */
+  readonly sortable?: Maybe<boolean>;
+  
+  /** Start with descending on first sort */
+  readonly sortDescendingFirst?: Maybe<boolean>;
+}
+
+interface RenderHeaderCellProps<TRow, TSummaryRow = unknown> {
+  column: CalculatedColumn<TRow, TSummaryRow>;
+  sortDirection: SortDirection | undefined;
+  priority: number | undefined;
+  tabIndex: number;
+}
+```

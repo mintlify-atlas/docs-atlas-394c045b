@@ -1,0 +1,157 @@
+---
+title: renderValue
+description: Default cell renderer that displays the value from row data
+---
+
+## Overview
+
+The `renderValue` function is the default cell renderer that displays the value of `row[column.key]`. It safely renders cell values and handles errors gracefully.
+
+## Signature
+
+```tsx
+function renderValue<R, SR>(props: RenderCellProps<R, SR>): React.ReactNode
+```
+
+## Parameters
+
+<ParamField path="props" type="RenderCellProps<R, SR>" required>
+  The cell renderer props.
+</ParamField>
+
+### RenderCellProps
+
+<ParamField path="row" type="R" required>
+  The row object containing the cell data.
+</ParamField>
+
+<ParamField path="column" type="CalculatedColumn<R, SR>" required>
+  The column object, which includes the `key` property used to access the cell value.
+</ParamField>
+
+<ParamField path="rowIdx" type="number" required>
+  The index of the row.
+</ParamField>
+
+<ParamField path="isCellEditable" type="boolean" required>
+  Whether the cell is editable.
+</ParamField>
+
+<ParamField path="tabIndex" type="number" required>
+  The tab index for keyboard navigation.
+</ParamField>
+
+<ParamField path="onRowChange" type="(row: R) => void" required>
+  Callback to update the row.
+</ParamField>
+
+## Return Value
+
+<ResponseField name="return" type="React.ReactNode">
+  The value from `row[column.key]`, or `null` if an error occurs while accessing the value.
+</ResponseField>
+
+## Usage
+
+This is the default cell renderer used when no custom `renderCell` is specified. You can also use it explicitly:
+
+```tsx
+import { renderValue, type Column } from 'react-data-grid';
+
+const columns: readonly Column<Row>[] = [
+  {
+    key: 'title',
+    name: 'Title',
+    renderCell: renderValue
+  }
+];
+```
+
+## Behavior
+
+- Safely accesses `row[column.key]`
+- Returns the value as `React.ReactNode` (strings, numbers, elements, etc.)
+- Returns `null` if an error occurs (e.g., accessing undefined properties)
+- Supports any React-renderable value type
+
+## Example
+
+The following examples demonstrate the default cell rendering:
+
+```tsx
+import 'react-data-grid/lib/styles.css';
+import { DataGrid, type Column } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  title: string;
+  count: number;
+  active: boolean;
+}
+
+const columns: readonly Column<Row>[] = [
+  { key: 'id', name: 'ID' },           // renders: row.id
+  { key: 'title', name: 'Title' },     // renders: row.title
+  { key: 'count', name: 'Count' },     // renders: row.count
+  { key: 'active', name: 'Active' }    // renders: row.active
+];
+
+const rows: readonly Row[] = [
+  { id: 1, title: 'Example', count: 42, active: true },
+  { id: 2, title: 'Demo', count: 10, active: false }
+];
+
+function App() {
+  return <DataGrid columns={columns} rows={rows} />;
+}
+```
+
+## Custom Cell Renderers
+
+For more complex cell rendering, create a custom renderer:
+
+```tsx
+import type { RenderCellProps } from 'react-data-grid';
+
+function CustomCell({ row, column }: RenderCellProps<Row>) {
+  const value = row[column.key];
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <span>{value}</span>
+      {row.isNew && <span style={{ color: 'red' }}>NEW</span>}
+    </div>
+  );
+}
+
+const columns: readonly Column<Row>[] = [
+  {
+    key: 'title',
+    name: 'Title',
+    renderCell: CustomCell
+  }
+];
+```
+
+## Error Handling
+
+The function uses a try-catch block to handle errors gracefully:
+
+```tsx
+try {
+  return props.row[props.column.key as keyof R] as React.ReactNode;
+} catch {
+  return null;
+}
+```
+
+This prevents the grid from crashing if:
+- The column key doesn't exist on the row object
+- Accessing the property throws an error (e.g., getter with an error)
+- The value cannot be converted to a ReactNode
+
+## Related
+
+- [Column.renderCell](/api/types/column#rendercell) - Custom cell renderer configuration
+- [RenderCellProps](/api/types/render-props#rendercellprops) - Cell renderer props type
+- [Cell component](/api/cell) - Default cell component

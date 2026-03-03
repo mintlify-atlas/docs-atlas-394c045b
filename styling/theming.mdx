@@ -1,0 +1,115 @@
+---
+title: Theming
+description: Configure light and dark themes for React Data Grid
+---
+
+The DataGrid supports both light and dark color schemes out of the box using modern CSS features.
+
+## Light/Dark Mode
+
+The DataGrid automatically adapts to the user's system preference using the `light-dark()` CSS function. The theme switches based on the `color-scheme` CSS property.
+
+### Automatic Theme Switching
+
+To enable automatic theme switching based on system preferences, set `color-scheme` on the root element:
+
+```css
+:root {
+  color-scheme: light dark; /* Automatically adapts to system preference */
+}
+```
+
+### Force a Specific Theme
+
+You can enforce a specific theme for your entire application:
+
+```css
+:root {
+  color-scheme: light; /* Always use light theme */
+}
+```
+
+```css
+:root {
+  color-scheme: dark; /* Always use dark theme */
+}
+```
+
+### Per-Grid Theme Control
+
+Alternatively, apply the `rdg-light` or `rdg-dark` class to individual grids:
+
+```tsx
+import { DataGrid } from 'react-data-grid';
+
+// Force light theme for this grid
+function LightGrid() {
+  return <DataGrid className="rdg-light" columns={columns} rows={rows} />;
+}
+
+// Force dark theme for this grid
+function DarkGrid() {
+  return <DataGrid className="rdg-dark" columns={columns} rows={rows} />;
+}
+```
+
+<Info>
+The `rdg-light` and `rdg-dark` classes override the system preference for individual grid instances.
+</Info>
+
+## Theme Customization
+
+While the DataGrid provides sensible defaults for both light and dark modes, you can customize the appearance using [CSS Variables](/styling/css-variables) or by applying [Custom Classes](/styling/custom-classes).
+
+### Combining with CSS Variables
+
+```tsx
+import 'react-data-grid/lib/styles.css';
+import { DataGrid } from 'react-data-grid';
+
+function ThemedGrid() {
+  return (
+    <DataGrid
+      className="my-themed-grid"
+      columns={columns}
+      rows={rows}
+    />
+  );
+}
+```
+
+```css
+.my-themed-grid {
+  /* Override theme colors */
+  --rdg-selection-color: hsl(280, 75%, 66%);
+  --rdg-row-hover-background-color: light-dark(hsl(280deg 20% 96%), hsl(280deg 20% 15%));
+}
+```
+
+<Tip>
+Use the `light-dark()` function when defining custom CSS variables to maintain support for both themes.
+</Tip>
+
+## Browser Compatibility
+
+The DataGrid's theming system uses modern CSS features:
+
+- `color-scheme` property (supported in all modern browsers)
+- `light-dark()` function (Chrome 123+, Firefox 120+, Safari 17.5+)
+
+For older browsers, the grid falls back to the light theme by default.
+
+<Info>
+Vite 8+ users: If using `lightningcss` for minification, you may need to adjust your build configuration due to a [known bug](https://github.com/parcel-bundler/lightningcss/issues/873) with `light-dark()` syntax.
+
+```ts
+// vite.config.ts
+export default {
+  build: {
+    cssMinify: 'esbuild',
+    // or
+    cssTarget: 'esnext'
+  }
+}
+```
+</Info>

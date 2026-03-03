@@ -1,0 +1,543 @@
+---
+title: Cell Spanning
+description: Span cells across multiple columns or create merged cells
+---
+
+Cell spanning allows individual cells to extend across multiple columns, similar to the `colspan` attribute in HTML tables. This is useful for creating merged cells, section headers, or full-width content rows.
+
+## Basic Usage
+
+Use the `colSpan` function on a column to control spanning:
+
+```tsx
+import { DataGrid, type Column, type ColSpanArgs } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  title: string;
+  status: string;
+  priority: string;
+  isFullWidth?: boolean;
+}
+
+const columns: Column<Row>[] = [
+  { key: 'id', name: 'ID', width: 80 },
+  {
+    key: 'title',
+    name: 'Title',
+    colSpan(args: ColSpanArgs<Row>) {
+      if (args.type === 'ROW' && args.row.isFullWidth) {
+        return 4; // Span across all columns
+      }
+      return undefined; // No spanning
+    }
+  },
+  { key: 'status', name: 'Status' },
+  { key: 'priority', name: 'Priority' }
+];
+
+const rows: Row[] = [
+  { id: 1, title: 'Task 1', status: 'In Progress', priority: 'High' },
+  { id: 2, title: 'SECTION: Development Tasks', status: '', priority: '', isFullWidth: true },
+  { id: 3, title: 'Task 2', status: 'Done', priority: 'Medium' }
+];
+
+function MyGrid() {
+  return <DataGrid columns={columns} rows={rows} />;
+}
+```
+
+<Accordion title="Visual Result">
+  ```
+  ┌──────┬────────────┬────────────┬────────────┐
+  │  ID  │   Title    │   Status   │  Priority  │
+  ├──────┼────────────┼────────────┼────────────┤
+  │  1   │  Task 1   │ In Progress│   High    │
+  ├──────┴─────────────────────────────────────────────────┐
+  │  2   SECTION: Development Tasks                            │
+  ├──────┬────────────┬────────────┬────────────┤
+  │  3   │  Task 2   │   Done    │   Medium  │
+  └──────┴────────────┴────────────┴────────────┘
+  ```
+</Accordion>
+
+## colSpan Function
+
+The `colSpan` function determines how many columns a cell should span:
+
+```tsx
+colSpan?: (args: ColSpanArgs<TRow, TSummaryRow>) => number | undefined | null
+```
+
+**Return value**:
+- `undefined` or `null`: No spanning (default)
+- `number`: Number of columns to span (including the current column)
+
+<Tabs>
+  <Tab title="ROW Type">
+    ```tsx
+    colSpan(args: ColSpanArgs<Row>) {
+      if (args.type === 'ROW') {
+        // args.row is the regular row data
+        return args.row.isSection ? 5 : undefined;
+      }
+      return undefined;
+    }
+    ```
+    
+    Used for regular data rows.
+  </Tab>
+  
+  <Tab title="HEADER Type">
+    ```tsx
+    colSpan(args: ColSpanArgs<Row>) {
+      if (args.type === 'HEADER') {
+        // No row data available for headers
+        return undefined; // Headers typically don't span
+      }
+      return undefined;
+    }
+    ```
+    
+    Used for header rows.
+  </Tab>
+  
+  <Tab title="SUMMARY Type">
+    ```tsx
+    colSpan(args: ColSpanArgs<Row, SummaryRow>) {
+      if (args.type === 'SUMMARY') {
+        // args.row is the summary row data
+        return args.row.id === 'total' ? 3 : undefined;
+      }
+      return undefined;
+    }
+    ```
+    
+    Used for summary rows.
+  </Tab>
+</Tabs>
+
+## Common Use Cases
+
+### Section Headers
+
+Create full-width section headers within your data:
+
+```tsx
+interface Row {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  type: 'user' | 'section';
+  sectionTitle?: string;
+}
+
+const columns: Column<Row>[] = [
+  {
+    key: 'name',
+    name: 'Name',
+    colSpan(args) {
+      if (args.type === 'ROW' && args.row.type === 'section') {
+        return 3; // Span across all columns
+      }
+      return undefined;
+    },
+    renderCell({ row }) {
+      if (row.type === 'section') {
+        return (
+          <div style={{
+            fontWeight: 'bold',
+            fontSize: '16px',
+            padding: '8px',
+            backgroundColor: '#f0f0f0'
+          }}>
+            {row.sectionTitle}
+          </div>
+        );
+      }
+      return <div>{row.name}</div>;
+    }
+  },
+  { key: 'email', name: 'Email' },
+  { key: 'role', name: 'Role' }
+];
+
+const rows: Row[] = [
+  { id: 1, name: '', email: '', role: '', type: 'section', sectionTitle: 'Administrators' },
+  { id: 2, name: 'John', email: 'john@example.com', role: 'Admin', type: 'user' },
+  { id: 3, name: '', email: '', role: '', type: 'section', sectionTitle: 'Users' },
+  { id: 4, name: 'Jane', email: 'jane@example.com', role: 'User', type: 'user' }
+];
+```
+
+### Merged Cells
+
+Merge cells based on data relationships:
+
+```tsx
+interface Row {
+  id: number;
+  date: string;
+  event: string;
+  time: string;
+  location: string;
+  spanDate?: boolean;
+}
+
+const columns: Column<Row>[] = [
+  {
+    key: 'date',
+    name: 'Date',
+    colSpan(args) {
+      if (args.type === 'ROW' && args.row.spanDate) {
+        return 2; // Span date and event columns
+      }
+      return undefined;
+    },
+    renderCell({ row }) {
+      if (row.spanDate) {
+        return (
+          <div style={{ fontWeight: 'bold', fontSize: '14px' }}>
+            {row.date}
+          </div>
+        );
+      }
+      return <div>{row.date}</div>;
+    }
+  },
+  { key: 'event', name: 'Event' },
+  { key: 'time', name: 'Time' },
+  { key: 'location', name: 'Location' }
+];
+```
+
+### Conditional Spanning
+
+Span based on cell content:
+
+```tsx
+const columns: Column<Row>[] = [
+  { key: 'id', name: 'ID' },
+  {
+    key: 'message',
+    name: 'Message',
+    colSpan(args) {
+      if (args.type === 'ROW') {
+        const messageLength = args.row.message?.length ?? 0;
+        // Span more columns for longer messages
+        if (messageLength > 100) return 4;
+        if (messageLength > 50) return 3;
+      }
+      return undefined;
+    }
+  },
+  { key: 'status', name: 'Status' },
+  { key: 'date', name: 'Date' }
+];
+```
+
+## Spanning with Frozen Columns
+
+Cells can span across frozen and non-frozen columns:
+
+```tsx
+const columns: Column<Row>[] = [
+  { key: 'id', name: 'ID', width: 80, frozen: true },
+  {
+    key: 'title',
+    name: 'Title',
+    frozen: true,
+    colSpan(args) {
+      if (args.type === 'ROW' && args.row.isFullWidth) {
+        return 5; // Spans from frozen into scrollable columns
+      }
+      return undefined;
+    }
+  },
+  { key: 'col1', name: 'Column 1' },
+  { key: 'col2', name: 'Column 2' },
+  { key: 'col3', name: 'Column 3' }
+];
+```
+
+<Note>
+From src/utils/colSpan.ts:
+```tsx
+export function getColSpan<R, SR>(
+  column: CalculatedColumn<R, SR>,
+  lastFrozenColumnIndex: number,
+  args: ColSpanArgs<R, SR>
+): number {
+  const colSpan = column.colSpan?.(args);
+  // Prevent spanning beyond the last frozen column
+  if (colSpan !== undefined && colSpan !== null && !Number.isNaN(colSpan)) {
+    if (column.idx <= lastFrozenColumnIndex) {
+      return Math.min(colSpan, lastFrozenColumnIndex - column.idx + 1);
+    }
+    return colSpan;
+  }
+  return 1;
+}
+```
+
+Frozen columns cannot span beyond the last frozen column boundary.
+</Note>
+
+## Spanning in Summary Rows
+
+Span summary cells across multiple columns:
+
+```tsx
+interface SummaryRow {
+  id: string;
+  label: string;
+  value: number;
+}
+
+const columns: Column<Row, SummaryRow>[] = [
+  { key: 'id', name: 'ID' },
+  { key: 'product', name: 'Product' },
+  { key: 'quantity', name: 'Quantity' },
+  {
+    key: 'price',
+    name: 'Price',
+    colSpan(args) {
+      if (args.type === 'SUMMARY' && args.row.id === 'grand-total') {
+        return 2; // Span product and quantity columns
+      }
+      return undefined;
+    },
+    renderSummaryCell({ row }) {
+      if (row.id === 'grand-total') {
+        return (
+          <div style={{ textAlign: 'right', fontWeight: 'bold', paddingRight: '16px' }}>
+            Grand Total: ${row.value.toFixed(2)}
+          </div>
+        );
+      }
+      return <div>${row.value.toFixed(2)}</div>;
+    }
+  }
+];
+
+const summaryRows: SummaryRow[] = [
+  { id: 'subtotal', label: 'Subtotal', value: 1000 },
+  { id: 'grand-total', label: '', value: 1100 }
+];
+
+<DataGrid
+  columns={columns}
+  rows={rows}
+  bottomSummaryRows={summaryRows}
+/>
+```
+
+## Styling Spanned Cells
+
+Apply custom styles to spanned cells:
+
+```tsx
+const columns: Column<Row>[] = [
+  {
+    key: 'title',
+    name: 'Title',
+    colSpan(args) {
+      if (args.type === 'ROW' && args.row.isSection) {
+        return 4;
+      }
+      return undefined;
+    },
+    cellClass(row) {
+      return row.isSection ? 'section-header-cell' : undefined;
+    },
+    renderCell({ row }) {
+      if (row.isSection) {
+        return (
+          <div className="section-header-content">
+            {row.title}
+          </div>
+        );
+      }
+      return <div>{row.title}</div>;
+    }
+  },
+  { key: 'status', name: 'Status' },
+  { key: 'priority', name: 'Priority' },
+  { key: 'assignee', name: 'Assignee' }
+];
+```
+
+```css
+.section-header-cell {
+  background-color: #e8f4f8;
+  border-top: 2px solid #0066cc;
+  border-bottom: 2px solid #0066cc;
+}
+
+.section-header-content {
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 12px 16px;
+  color: #0066cc;
+}
+```
+
+## Accessibility
+
+The grid automatically sets appropriate `aria-colspan` attributes:
+
+```tsx
+// From src/Cell.tsx (simplified)
+const cellProps = {
+  role: 'gridcell',
+  'aria-colindex': column.idx + 1,
+  'aria-colspan': colSpan > 1 ? colSpan : undefined
+};
+```
+
+Screen readers correctly announce spanned cells to users.
+
+## Performance Considerations
+
+<Accordion title="Impact on Rendering">
+  Cell spanning requires additional calculations:
+  
+  1. **colSpan evaluation**: Called for each visible cell
+  2. **Layout recalculation**: CSS Grid adjusts for spanning cells
+  3. **Virtual scrolling**: Spanning cells are properly handled
+  
+  **Best Practices**:
+  - Keep `colSpan` functions simple and fast
+  - Avoid expensive calculations inside `colSpan`
+  - Use memoization if calculations are complex
+  
+  ```tsx
+  // Good: Simple check
+  colSpan(args) {
+    if (args.type === 'ROW' && args.row.isSection) {
+      return 3;
+    }
+    return undefined;
+  }
+  
+  // Avoid: Complex calculation on every render
+  colSpan(args) {
+    if (args.type === 'ROW') {
+      const result = expensiveCalculation(args.row);
+      return result > threshold ? 3 : undefined;
+    }
+    return undefined;
+  }
+  ```
+</Accordion>
+
+## Limitations
+
+<Info>
+**Current Limitations**:
+
+1. **No Row Spanning**: Cells cannot span multiple rows (only columns)
+2. **Frozen Column Boundary**: Frozen columns cannot span beyond the last frozen column
+3. **Manual Rendering**: Spanned cells don't automatically merge content from hidden columns
+4. **Selection**: Cell selection works on the spanned cell, not individual underlying columns
+</Info>
+
+## Advanced Example: Tree Table
+
+Combine spanning with custom rendering for tree-like structures:
+
+```tsx
+interface TreeRow {
+  id: number;
+  name: string;
+  type: 'folder' | 'file';
+  level: number;
+  size?: number;
+  modified?: string;
+}
+
+const columns: Column<TreeRow>[] = [
+  {
+    key: 'name',
+    name: 'Name',
+    colSpan(args) {
+      if (args.type === 'ROW' && args.row.type === 'folder') {
+        return 3; // Folders span all columns
+      }
+      return undefined;
+    },
+    renderCell({ row }) {
+      const indent = row.level * 20;
+      if (row.type === 'folder') {
+        return (
+          <div style={{ paddingLeft: indent, fontWeight: 'bold' }}>
+            📁 {row.name}
+          </div>
+        );
+      }
+      return (
+        <div style={{ paddingLeft: indent }}>
+          📄 {row.name}
+        </div>
+      );
+    }
+  },
+  {
+    key: 'size',
+    name: 'Size',
+    renderCell({ row }) {
+      return row.size ? `${row.size} KB` : '';
+    }
+  },
+  { key: 'modified', name: 'Modified' }
+];
+
+const rows: TreeRow[] = [
+  { id: 1, name: 'Documents', type: 'folder', level: 0 },
+  { id: 2, name: 'report.pdf', type: 'file', level: 1, size: 245, modified: '2024-01-15' },
+  { id: 3, name: 'Projects', type: 'folder', level: 0 },
+  { id: 4, name: 'code.js', type: 'file', level: 1, size: 12, modified: '2024-01-16' }
+];
+```
+
+## API Reference
+
+### Column Property
+
+#### colSpan
+
+```tsx
+colSpan?: (args: ColSpanArgs<TRow, TSummaryRow>) => number | undefined | null
+```
+
+**Description**: Function to determine how many columns this cell should span.
+
+**Parameters**:
+- `args`: Object with type discriminator and row data
+
+**Returns**:
+- `undefined` or `null`: No spanning
+- `number`: Number of columns to span (must be ≥ 1)
+
+### ColSpanArgs Type
+
+```tsx
+type ColSpanArgs<TRow, TSummaryRow> =
+  | { type: 'HEADER' }
+  | { type: 'ROW'; row: TRow }
+  | { type: 'SUMMARY'; row: TSummaryRow };
+```
+
+**Discriminated Union**:
+- `type: 'HEADER'`: Header row (no row data)
+- `type: 'ROW'`: Regular data row (includes `row` property)
+- `type: 'SUMMARY'`: Summary row (includes `row` property with summary data)
+
+## Related Features
+
+- [Column Grouping](/features/column-grouping) - Group columns under shared headers
+- [Summary Rows](/features/summary-rows) - Spanning in summary rows
+- [Custom Renderers](/features/custom-renderers) - Custom rendering for spanned cells

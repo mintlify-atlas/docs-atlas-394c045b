@@ -1,0 +1,247 @@
+---
+title: Virtualization
+description: Efficiently render large datasets with row and column virtualization
+---
+
+React Data Grid uses virtualization to efficiently render large datasets by only rendering rows and columns that are visible in the viewport. This approach significantly improves performance when working with thousands of rows or many columns.
+
+## How Virtualization Works
+
+The grid uses CSS Grid for layout and implements row/column virtualization in JavaScript:
+
+- **Row Virtualization**: Only rows visible in the viewport (plus a small overscan buffer) are rendered to the DOM
+- **Column Virtualization**: Only columns visible in the viewport (plus frozen columns) are rendered
+- **Dynamic Calculation**: The grid calculates which rows and columns to render based on scroll position
+- **Overscan Buffer**: Additional rows/columns are rendered just outside the viewport for smooth scrolling
+
+<Note>
+Virtualization is enabled by default. The grid automatically handles viewport calculations and updates as you scroll.
+</Note>
+
+## Enabling/Disabling Virtualization
+
+Virtualization is enabled by default, but you can disable it if needed:
+
+```tsx
+import { DataGrid } from 'react-data-grid';
+
+function MyGrid() {
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      enableVirtualization={true} // default
+    />
+  );
+}
+```
+
+<Tabs>
+  <Tab title="Enabled (Default)">
+    ```tsx
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      enableVirtualization={true}
+    />
+    ```
+    
+    Only visible rows and columns are rendered. Best for large datasets.
+  </Tab>
+  
+  <Tab title="Disabled">
+    ```tsx
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      enableVirtualization={false}
+    />
+    ```
+    
+    All rows and columns are rendered. Use only for small datasets (< 100 rows).
+  </Tab>
+</Tabs>
+
+## Performance Benefits
+
+<Accordion title="Large Dataset Performance">
+  With virtualization enabled, the grid can efficiently handle:
+  
+  - **100,000+ rows**: Only visible rows are rendered
+  - **100+ columns**: Only visible columns are calculated
+  - **Smooth scrolling**: Overscan buffer prevents layout thrashing
+  - **Low memory usage**: DOM nodes are reused as you scroll
+  
+  Example with 100,000 rows:
+  
+  ```tsx
+  const rows = Array.from({ length: 100_000 }, (_, i) => ({
+    id: i,
+    name: `Row ${i}`,
+    value: Math.random() * 1000
+  }));
+  
+  function LargeGrid() {
+    return (
+      <DataGrid
+        columns={columns}
+        rows={rows}
+        // Virtualization handles this efficiently
+      />
+    );
+  }
+  ```
+</Accordion>
+
+<Accordion title="Memory Usage">
+  Without virtualization, rendering 10,000 rows would create 10,000+ DOM nodes. With virtualization:
+  
+  - Only ~20-30 rows are rendered at once (depending on viewport height)
+  - DOM nodes are recycled as you scroll
+  - Memory usage remains constant regardless of dataset size
+</Accordion>
+
+## Best Practices
+
+<Tip>
+**When to Use Virtualization (Default)**
+- Large datasets (1000+ rows)
+- Many columns that extend beyond viewport width
+- Performance is critical
+- Standard use cases
+</Tip>
+
+<Info>
+**When to Consider Disabling**
+- Very small datasets (< 50 rows)
+- Need to print or export entire grid at once
+- Using third-party tools that require all DOM elements
+- Testing scenarios where you need to query all rows
+</Info>
+
+## How It Works Internally
+
+The grid uses several hooks to calculate virtualization:
+
+```tsx
+// From src/DataGrid.tsx (simplified)
+const {
+  rowOverscanStartIdx,
+  rowOverscanEndIdx,
+  totalRowHeight,
+  getRowTop,
+  getRowHeight
+} = useViewportRows({
+  rows,
+  rowHeight,
+  clientHeight,
+  scrollTop,
+  enableVirtualization
+});
+
+const {
+  colOverscanStartIdx,
+  colOverscanEndIdx
+} = useCalculatedColumns({
+  rawColumns,
+  scrollLeft,
+  viewportWidth: gridWidth,
+  enableVirtualization
+});
+```
+
+### Viewport Calculation
+
+The grid calculates which rows to render based on:
+
+1. **Scroll Position**: Current `scrollTop` and `scrollLeft` values
+2. **Viewport Dimensions**: Available width and height
+3. **Row Heights**: Fixed or dynamic row heights
+4. **Overscan Buffer**: Extra rows/columns for smooth scrolling
+
+<Accordion title="Dynamic Row Heights">
+  Virtualization works seamlessly with dynamic row heights:
+  
+  ```tsx
+  function getRowHeight(row: Row): number {
+    return row.isExpanded ? 100 : 35;
+  }
+  
+  <DataGrid
+    columns={columns}
+    rows={rows}
+    rowHeight={getRowHeight}
+    // Virtualization handles variable heights
+  />
+  ```
+  
+  <Note>
+  When using a function for `rowHeight`, heights are calculated upfront. For optimal performance with large datasets (1000+ rows), use memoization or a static function.
+  </Note>
+</Accordion>
+
+## Scroll Performance
+
+The grid uses `flushSync` to ensure smooth scrolling:
+
+```tsx
+// From src/DataGrid.tsx
+function handleScroll(event: React.UIEvent<HTMLDivElement>) {
+  const { scrollTop, scrollLeft } = event.currentTarget;
+  flushSync(() => {
+    setScrollTop(scrollTop);
+    setScrollLeft(abs(scrollLeft));
+  });
+  onScroll?.(event);
+}
+```
+
+This synchronous update ensures the viewport is recalculated immediately during scroll, preventing visual artifacts.
+
+## Frozen Columns and Virtualization
+
+Frozen columns are always rendered, even when column virtualization is enabled:
+
+```tsx
+const columns = [
+  { key: 'id', name: 'ID', frozen: true }, // Always visible
+  { key: 'name', name: 'Name', frozen: true }, // Always visible
+  { key: 'col1', name: 'Column 1' }, // Virtualized
+  { key: 'col2', name: 'Column 2' }, // Virtualized
+  // ... 50+ more columns
+];
+```
+
+Frozen columns do not affect virtualization performance since they remain in a fixed position.
+
+## API Reference
+
+### enableVirtualization
+
+```tsx
+enableVirtualization?: boolean
+```
+
+**Default**: `true`
+
+**Description**: Controls whether row and column virtualization is enabled. When true, only visible rows and columns are rendered. When false, all rows and columns are rendered.
+
+**Usage**:
+
+```tsx
+// Enable virtualization (default)
+<DataGrid columns={columns} rows={rows} enableVirtualization={true} />
+
+// Disable virtualization
+<DataGrid columns={columns} rows={rows} enableVirtualization={false} />
+```
+
+<Info>
+Disabling virtualization with large datasets (1000+ rows) may cause performance issues and should be avoided.
+</Info>
+
+## Related Features
+
+- [Frozen Columns](/features/frozen-columns) - Columns that remain visible during horizontal scrolling
+- [Dynamic Row Heights](/features/row-grouping#dynamic-heights) - Variable row heights with virtualization
+- [Keyboard Navigation](/features/keyboard-navigation) - Navigate efficiently through virtualized content

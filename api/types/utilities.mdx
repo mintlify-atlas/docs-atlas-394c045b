@@ -1,0 +1,432 @@
+---
+title: 'Utility Types'
+description: 'SortColumn, SortDirection, RowsChangeData, and other utility type definitions'
+---
+
+## SortColumn
+
+Describes a sorted column.
+
+```typescript
+interface SortColumn {
+  readonly columnKey: string;
+  readonly direction: SortDirection;
+}
+```
+
+### Properties
+
+<ParamField path="columnKey" type="string" required>
+  The key of the column being sorted.
+</ParamField>
+
+<ParamField path="direction" type="SortDirection" required>
+  The sort direction ('ASC' or 'DESC').
+</ParamField>
+
+---
+
+## SortDirection
+
+Sort direction values.
+
+```typescript
+type SortDirection = 'ASC' | 'DESC';
+```
+
+- `'ASC'` - Ascending order
+- `'DESC'` - Descending order
+
+---
+
+## RowsChangeData\<TRow, TSummaryRow\>
+
+Data provided to `onRowsChange` callback.
+
+```typescript
+interface RowsChangeData<R, SR = unknown> {
+  indexes: number[];
+  column: CalculatedColumn<R, SR>;
+}
+```
+
+### Properties
+
+<ParamField path="indexes" type="number[]" required>
+  Array of row indexes that changed.
+</ParamField>
+
+<ParamField path="column" type="CalculatedColumn<R, SR>" required>
+  The column where changes occurred.
+</ParamField>
+
+---
+
+## ColSpanArgs\<TRow, TSummaryRow\>
+
+Arguments passed to the `colSpan` function.
+
+```typescript
+type ColSpanArgs<TRow, TSummaryRow> =
+  | { type: 'HEADER' }
+  | { type: 'ROW'; row: TRow }
+  | { type: 'SUMMARY'; row: TSummaryRow };
+```
+
+### Variants
+
+<ParamField path="type" type="'HEADER'" required>
+  For header cells.
+</ParamField>
+
+<ParamField path="type" type="'ROW'" required>
+  For regular row cells.
+  
+  <ParamField path="row" type="TRow" required>
+    The row object.
+  </ParamField>
+</ParamField>
+
+<ParamField path="type" type="'SUMMARY'" required>
+  For summary row cells.
+  
+  <ParamField path="row" type="TSummaryRow" required>
+    The summary row object.
+  </ParamField>
+</ParamField>
+
+### Example
+
+```typescript
+import type { Column } from 'react-data-grid';
+
+const columns: readonly Column<Row>[] = [
+  {
+    key: 'title',
+    name: 'Title',
+    colSpan(args) {
+      if (args.type === 'ROW' && args.row.isFullWidth) {
+        return 3; // Span 3 columns
+      }
+      return undefined;
+    }
+  }
+];
+```
+
+---
+
+## RowHeightArgs\<TRow\>
+
+Arguments passed to `TreeDataGrid`'s `rowHeight` prop when it is a function.
+
+```typescript
+type RowHeightArgs<TRow> =
+  | { type: 'ROW'; row: TRow }
+  | { type: 'GROUP'; row: GroupRow<TRow> };
+```
+
+### Variants
+
+<ParamField path="type" type="'ROW'" required>
+  For regular rows.
+  
+  <ParamField path="row" type="TRow" required>
+    The row object.
+  </ParamField>
+</ParamField>
+
+<ParamField path="type" type="'GROUP'" required>
+  For group rows.
+  
+  <ParamField path="row" type="GroupRow<TRow>" required>
+    The group row object.
+  </ParamField>
+</ParamField>
+
+### Example
+
+```typescript
+function getRowHeight(args: RowHeightArgs<Row>): number {
+  if (args.type === 'GROUP') {
+    return 40;
+  }
+  return args.row.isLarge ? 60 : 35;
+}
+
+<TreeDataGrid rowHeight={getRowHeight} ... />
+```
+
+---
+
+## GroupRow\<TRow\>
+
+Represents a grouped row in `TreeDataGrid`.
+
+```typescript
+interface GroupRow<TRow> {
+  readonly childRows: readonly TRow[];
+  readonly id: string;
+  readonly parentId: unknown;
+  readonly groupKey: unknown;
+  readonly isExpanded: boolean;
+  readonly level: number;
+  readonly posInSet: number;
+  readonly setSize: number;
+  readonly startRowIndex: number;
+}
+```
+
+### Properties
+
+<ParamField path="childRows" type="readonly TRow[]" required>
+  Array of child rows in this group.
+</ParamField>
+
+<ParamField path="id" type="string" required>
+  Unique identifier for the group.
+</ParamField>
+
+<ParamField path="parentId" type="unknown" required>
+  ID of the parent group, if nested.
+</ParamField>
+
+<ParamField path="groupKey" type="unknown" required>
+  The group key value.
+</ParamField>
+
+<ParamField path="isExpanded" type="boolean" required>
+  Whether the group is expanded.
+</ParamField>
+
+<ParamField path="level" type="number" required>
+  Nesting level of the group (0 for top-level).
+</ParamField>
+
+<ParamField path="posInSet" type="number" required>
+  Position in the set (for ARIA).
+</ParamField>
+
+<ParamField path="setSize" type="number" required>
+  Size of the set (for ARIA).
+</ParamField>
+
+<ParamField path="startRowIndex" type="number" required>
+  Starting row index of the group.
+</ParamField>
+
+---
+
+## ColumnWidths
+
+A map of column widths.
+
+```typescript
+type ColumnWidths = ReadonlyMap<string, ColumnWidth>;
+
+interface ColumnWidth {
+  readonly type: 'resized' | 'measured';
+  readonly width: number;
+}
+```
+
+### ColumnWidth Properties
+
+<ParamField path="type" type="'resized' | 'measured'" required>
+  The type of width:
+  - `'resized'` - Width set by user resizing
+  - `'measured'` - Width measured from content
+</ParamField>
+
+<ParamField path="width" type="number" required>
+  The width in pixels.
+</ParamField>
+
+Used with `columnWidths` and `onColumnWidthsChange` props to control column widths externally.
+
+---
+
+## Renderers\<TRow, TSummaryRow\>
+
+Custom renderer configuration for the grid.
+
+```typescript
+interface Renderers<TRow, TSummaryRow> {
+  renderCell?: Maybe<(key: Key, props: CellRendererProps<TRow, TSummaryRow>) => ReactNode>;
+  renderCheckbox?: Maybe<(props: RenderCheckboxProps) => ReactNode>;
+  renderRow?: Maybe<(key: Key, props: RenderRowProps<TRow, TSummaryRow>) => ReactNode>;
+  renderSortStatus?: Maybe<(props: RenderSortStatusProps) => ReactNode>;
+  noRowsFallback?: Maybe<ReactNode>;
+}
+```
+
+### Properties
+
+<ParamField path="renderCell" type="(key: Key, props: CellRendererProps<TRow, TSummaryRow>) => ReactNode">
+  Custom cell render function.
+</ParamField>
+
+<ParamField path="renderCheckbox" type="(props: RenderCheckboxProps) => ReactNode">
+  Custom checkbox render function.
+</ParamField>
+
+<ParamField path="renderRow" type="(key: Key, props: RenderRowProps<TRow, TSummaryRow>) => ReactNode">
+  Custom row render function.
+</ParamField>
+
+<ParamField path="renderSortStatus" type="(props: RenderSortStatusProps) => ReactNode">
+  Custom sort status indicator render function.
+</ParamField>
+
+<ParamField path="noRowsFallback" type="ReactNode">
+  Custom empty state to display when there are no rows.
+</ParamField>
+
+---
+
+## Direction
+
+Grid layout bidirectionality.
+
+```typescript
+type Direction = 'ltr' | 'rtl';
+```
+
+- `'ltr'` - Left-to-right (default)
+- `'rtl'` - Right-to-left
+
+---
+
+## CellNavigationMode
+
+Cell navigation mode values.
+
+```typescript
+type CellNavigationMode = 'NONE' | 'CHANGE_ROW';
+```
+
+- `'NONE'` - No navigation when reaching the edge of a row
+- `'CHANGE_ROW'` - Navigate to the next/previous row when reaching the edge
+
+---
+
+## DataGridHandle
+
+Handle type assigned to a grid's `ref` for programmatic grid control.
+
+```typescript
+interface DataGridHandle {
+  element: HTMLDivElement | null;
+  scrollToCell: (position: Partial<Position>) => void;
+  selectCell: (position: Position, options?: SelectCellOptions) => void;
+}
+```
+
+### Properties
+
+<ParamField path="element" type="HTMLDivElement | null" required>
+  Reference to the grid DOM element.
+</ParamField>
+
+<ParamField path="scrollToCell" type="(position: Partial<Position>) => void" required>
+  Scrolls the grid to bring the specified cell into view.
+  
+  ```typescript
+  gridRef.current?.scrollToCell({ rowIdx: 10, idx: 2 });
+  ```
+</ParamField>
+
+<ParamField path="selectCell" type="(position: Position, options?: SelectCellOptions) => void" required>
+  Selects the specified cell programmatically.
+  
+  ```typescript
+  gridRef.current?.selectCell(
+    { rowIdx: 5, idx: 1 },
+    { enableEditor: true }
+  );
+  ```
+</ParamField>
+
+### Example
+
+```typescript
+import { useRef } from 'react';
+import { DataGrid, DataGridHandle } from 'react-data-grid';
+
+function MyGrid() {
+  const gridRef = useRef<DataGridHandle>(null);
+
+  function scrollToTop() {
+    gridRef.current?.scrollToCell({ rowIdx: 0 });
+  }
+
+  return <DataGrid ref={gridRef} columns={columns} rows={rows} />;
+}
+```
+
+---
+
+## DefaultColumnOptions\<TRow, TSummaryRow\>
+
+Default options applied to all columns.
+
+```typescript
+type DefaultColumnOptions<TRow, TSummaryRow> = Pick<
+  Column<TRow, TSummaryRow>,
+  | 'renderCell'
+  | 'renderHeaderCell'
+  | 'width'
+  | 'minWidth'
+  | 'maxWidth'
+  | 'resizable'
+  | 'sortable'
+  | 'draggable'
+>;
+```
+
+A subset of `Column` properties that can be applied as defaults to all columns.
+
+---
+
+## ResizedWidth
+
+Type for resized column width values.
+
+```typescript
+type ResizedWidth = number | 'max-content';
+```
+
+- `number` - Width in pixels
+- `'max-content'` - Automatically size to content
+
+---
+
+## Omit\<T, K\>
+
+Utility type for omitting properties from a type.
+
+```typescript
+type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
+```
+
+---
+
+## Maybe\<T\>
+
+Utility type for optional values.
+
+```typescript
+type Maybe<T> = T | undefined | null;
+```
+
+Used throughout the library for nullable column/render props.
+
+---
+
+## StateSetter\<S\>
+
+Utility type for React state setters.
+
+```typescript
+type StateSetter<S> = React.Dispatch<React.SetStateAction<S>>;
+```

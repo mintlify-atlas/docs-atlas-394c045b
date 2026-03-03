@@ -1,0 +1,547 @@
+---
+title: Keyboard Navigation
+description: Navigate and interact with the grid using keyboard shortcuts
+---
+
+React Data Grid provides comprehensive keyboard navigation support, allowing users to efficiently navigate cells, edit data, and perform actions without using a mouse.
+
+## Basic Navigation
+
+### Arrow Keys
+
+Navigate between cells using arrow keys:
+
+```tsx
+import { DataGrid, type Column } from 'react-data-grid';
+
+const columns: Column<Row>[] = [
+  { key: 'id', name: 'ID' },
+  { key: 'name', name: 'Name' },
+  { key: 'email', name: 'Email' }
+];
+
+function MyGrid() {
+  return <DataGrid columns={columns} rows={rows} />;
+}
+```
+
+<Tabs>
+  <Tab title="Arrow Keys">
+    - **↑ Up**: Move to cell above
+    - **↓ Down**: Move to cell below
+    - **← Left**: Move to cell on the left
+    - **→ Right**: Move to cell on the right
+  </Tab>
+  
+  <Tab title="Home/End">
+    - **Home**: Jump to first cell in row
+    - **End**: Jump to last cell in row
+    - **Ctrl+Home**: Jump to first cell in grid
+    - **Ctrl+End**: Jump to last cell in grid
+  </Tab>
+  
+  <Tab title="Page Up/Down">
+    - **Page Up**: Scroll up one viewport
+    - **Page Down**: Scroll down one viewport
+  </Tab>
+  
+  <Tab title="Tab">
+    - **Tab**: Move to next cell (wraps to next row)
+    - **Shift+Tab**: Move to previous cell (wraps to previous row)
+  </Tab>
+</Tabs>
+
+<Note>
+The grid automatically scrolls to keep the selected cell visible during navigation.
+</Note>
+
+## Editing
+
+### Enter Edit Mode
+
+Start editing cells using keyboard:
+
+```tsx
+import { renderTextEditor } from 'react-data-grid';
+
+const columns: Column<Row>[] = [
+  {
+    key: 'name',
+    name: 'Name',
+    renderEditCell: renderTextEditor
+  }
+];
+```
+
+<Tabs>
+  <Tab title="Enter Key">
+    Press **Enter** to start editing the selected cell.
+    
+    ```tsx
+    // Default behavior
+    // Enter key opens editor on editable cells
+    ```
+  </Tab>
+  
+  <Tab title="Typing">
+    Start typing to immediately edit the cell.
+    
+    ```tsx
+    // Any printable character opens the editor
+    // and replaces the current value
+    ```
+  </Tab>
+  
+  <Tab title="Double Click">
+    Double-click a cell to start editing.
+    
+    ```tsx
+    // Default behavior for editable cells
+    ```
+  </Tab>
+</Tabs>
+
+### While Editing
+
+<Tabs>
+  <Tab title="Commit Changes">
+    - **Enter**: Save changes and close editor
+    - **Tab**: Save changes and move to next cell
+    - **Click Outside**: Save changes (default behavior)
+  </Tab>
+  
+  <Tab title="Cancel Changes">
+    - **Escape**: Cancel changes and close editor
+    - Restores original cell value
+  </Tab>
+  
+  <Tab title="Navigate">
+    - **Arrow Keys**: Move cursor within editor
+    - **Home/End**: Jump to start/end of text
+  </Tab>
+</Tabs>
+
+## Row Selection
+
+Select rows using keyboard:
+
+```tsx
+import { useState } from 'react';
+import { DataGrid, SelectColumn } from 'react-data-grid';
+
+function MyGrid() {
+  const [selectedRows, setSelectedRows] = useState<ReadonlySet<number>>(new Set());
+  
+  const columns = [
+    SelectColumn,
+    { key: 'name', name: 'Name' },
+    { key: 'email', name: 'Email' }
+  ];
+  
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      rowKeyGetter={(row) => row.id}
+      selectedRows={selectedRows}
+      onSelectedRowsChange={setSelectedRows}
+    />
+  );
+}
+```
+
+<Tabs>
+  <Tab title="Space Key">
+    **Shift+Space**: Toggle row selection
+    
+    From src/DataGrid.tsx:
+    ```tsx
+    // Select the row on Shift + Space
+    if (isSelectable && shiftKey && key === ' ') {
+      const rowKey = rowKeyGetter(row);
+      selectRow({ row, checked: !selectedRows.has(rowKey), isShiftClick: false });
+      event.preventDefault(); // prevent scrolling
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Range Selection">
+    **Shift+Click**: Select range of rows
+    
+    - Click checkbox on first row
+    - Hold Shift and click checkbox on last row
+    - All rows between are selected
+  </Tab>
+</Tabs>
+
+## TreeGrid Navigation
+
+TreeDataGrid provides additional keyboard navigation:
+
+```tsx
+import { useState } from 'react';
+import { TreeDataGrid, type Column } from 'react-data-grid';
+
+function MyTreeGrid() {
+  const [expandedGroupIds, setExpandedGroupIds] = useState<ReadonlySet<unknown>>(new Set());
+  
+  return (
+    <TreeDataGrid
+      columns={columns}
+      rows={rows}
+      groupBy={['category']}
+      rowGrouper={rowGrouper}
+      expandedGroupIds={expandedGroupIds}
+      onExpandedGroupIdsChange={setExpandedGroupIds}
+    />
+  );
+}
+```
+
+<Tabs>
+  <Tab title="Expand/Collapse">
+    When a group row is focused:
+    
+    - **→ Right Arrow**: Expand collapsed group
+    - **← Left Arrow**: Collapse expanded group
+    
+    From src/TreeDataGrid.tsx:
+    ```tsx
+    if (
+      idx === -1 &&
+      ((event.key === leftKey && row.isExpanded) ||
+       (event.key === rightKey && !row.isExpanded))
+    ) {
+      event.preventDefault();
+      event.preventGridDefault();
+      toggleGroup(row.id);
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Parent Navigation">
+    **← Left Arrow**: When on collapsed group, navigate to parent
+    
+    ```tsx
+    if (idx === -1 && event.key === leftKey && !row.isExpanded && row.level !== 0) {
+      const parentRowAndIndex = getParentRowAndIndex(row);
+      if (parentRowAndIndex !== undefined) {
+        event.preventGridDefault();
+        selectCell({ idx, rowIdx: parentRowAndIndex[1] });
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Custom Keyboard Behavior
+
+### Prevent Default Actions
+
+Customize keyboard behavior using `onCellKeyDown`:
+
+```tsx
+import type { CellKeyDownArgs, CellKeyboardEvent } from 'react-data-grid';
+
+function handleCellKeyDown(
+  args: CellKeyDownArgs<Row>,
+  event: CellKeyboardEvent
+) {
+  if (args.mode === 'SELECT' && event.key === 'Enter') {
+    // Prevent entering edit mode on Enter
+    event.preventGridDefault();
+    
+    // Custom action instead
+    console.log('Custom action for', args.row);
+  }
+}
+
+<DataGrid
+  columns={columns}
+  rows={rows}
+  onCellKeyDown={handleCellKeyDown}
+/>
+```
+
+<Accordion title="Custom Tab Navigation">
+  Customize Tab key behavior:
+  
+  ```tsx
+  function handleCellKeyDown(
+    args: CellKeyDownArgs<Row>,
+    event: CellKeyboardEvent
+  ) {
+    if (args.mode === 'SELECT' && event.key === 'Tab') {
+      // Prevent default tab navigation
+      event.preventGridDefault();
+      
+      // Custom logic: skip non-editable columns
+      const currentIdx = args.column.idx;
+      const nextEditableIdx = columns.findIndex(
+        (col, idx) => idx > currentIdx && col.renderEditCell
+      );
+      
+      if (nextEditableIdx !== -1) {
+        args.selectCell({
+          idx: nextEditableIdx,
+          rowIdx: args.rowIdx
+        });
+      }
+    }
+  }
+  ```
+</Accordion>
+
+### Custom Edit Triggers
+
+Control when cells enter edit mode:
+
+```tsx
+function handleCellClick(
+  args: CellMouseArgs<Row>,
+  event: CellMouseEvent
+) {
+  // Enter edit mode on single click
+  if (args.column.renderEditCell) {
+    args.selectCell(true); // true = enable editor
+  }
+}
+
+<DataGrid
+  columns={columns}
+  rows={rows}
+  onCellClick={handleCellClick}
+/>
+```
+
+<Accordion title="Conditional Edit Mode">
+  Only allow editing under certain conditions:
+  
+  ```tsx
+  function handleCellKeyDown(
+    args: CellKeyDownArgs<Row>,
+    event: CellKeyboardEvent
+  ) {
+    if (args.mode === 'SELECT' && event.key === 'Enter') {
+      // Only allow editing if user has permission
+      if (!userHasEditPermission(args.row)) {
+        event.preventGridDefault();
+        alert('You do not have permission to edit this row');
+        return;
+      }
+      
+      // Allow default behavior (enter edit mode)
+    }
+  }
+  ```
+</Accordion>
+
+## Focus Management
+
+The grid manages focus automatically:
+
+```tsx
+// From src/DataGrid.tsx
+useLayoutEffect(() => {
+  if (shouldFocusCell) {
+    if (selectedPosition.idx === -1) {
+      focusRow(gridRef.current!);
+    } else {
+      focusCell(gridRef.current!);
+    }
+    setShouldFocusCell(false);
+  }
+}, [shouldFocusCell, selectedPosition.idx, gridRef]);
+```
+
+### Programmatic Focus
+
+Control focus programmatically:
+
+```tsx
+import { useRef } from 'react';
+import type { DataGridHandle } from 'react-data-grid';
+
+function MyComponent() {
+  const gridRef = useRef<DataGridHandle>(null);
+  
+  function focusCell(rowIdx: number, colIdx: number) {
+    gridRef.current?.selectCell({ rowIdx, idx: colIdx }, { shouldFocusCell: true });
+  }
+  
+  return (
+    <>
+      <button onClick={() => focusCell(0, 0)}>Focus first cell</button>
+      <DataGrid
+        ref={gridRef}
+        columns={columns}
+        rows={rows}
+      />
+    </>
+  );
+}
+```
+
+## RTL Navigation
+
+In RTL mode, horizontal navigation is reversed:
+
+```tsx
+<DataGrid
+  columns={columns}
+  rows={rows}
+  direction="rtl"
+/>
+```
+
+<Info>
+From src/DataGrid.tsx:
+```tsx
+const { leftKey, rightKey } = getLeftRightKey(direction);
+
+// In RTL mode:
+// - leftKey is 'ArrowRight'
+// - rightKey is 'ArrowLeft'
+```
+
+Arrow key behavior automatically adjusts:
+- **→ Right**: Moves left in RTL
+- **← Left**: Moves right in RTL
+</Info>
+
+## Accessibility
+
+### ARIA Support
+
+The grid implements proper ARIA attributes:
+
+```tsx
+<div
+  role="grid"
+  aria-label="Data grid"
+  aria-colcount={columns.length}
+  aria-rowcount={rows.length + headerRowsCount}
+  aria-multiselectable={isSelectable}
+  tabIndex={-1} // Grid container is focusable
+>
+  <div role="row" aria-rowindex={1}>
+    <div role="columnheader" aria-colindex={1} tabIndex={-1}>
+      Column 1
+    </div>
+  </div>
+  <div role="row" aria-rowindex={2} aria-selected={false}>
+    <div role="gridcell" aria-colindex={1} tabIndex={0}>
+      Cell content
+    </div>
+  </div>
+</div>
+```
+
+### Screen Reader Support
+
+- **Grid role**: Announces as data grid
+- **Aria attributes**: Provide context about position and selection
+- **Focus management**: Maintains logical focus order
+- **Selection state**: Announces selected rows
+
+<Accordion title="ARIA Labels">
+  Provide proper labels for accessibility:
+  
+  ```tsx
+  <DataGrid
+    aria-label="Employee directory"
+    aria-description="Searchable list of all employees with contact information"
+    columns={columns}
+    rows={rows}
+  />
+  
+  // Or with aria-labelledby
+  <>
+    <h2 id="grid-title">Employee Directory</h2>
+    <DataGrid
+      aria-labelledby="grid-title"
+      columns={columns}
+      rows={rows}
+    />
+  </>
+  ```
+</Accordion>
+
+## API Reference
+
+### DataGrid Props
+
+#### onCellKeyDown
+
+```tsx
+onCellKeyDown?: (args: CellKeyDownArgs<R, SR>, event: CellKeyboardEvent) => void
+```
+
+**Description**: Callback triggered when a key is pressed in a cell.
+
+**Usage**: Customize keyboard behavior or add custom shortcuts.
+
+#### onSelectedCellChange
+
+```tsx
+onSelectedCellChange?: (args: CellSelectArgs<R, SR>) => void
+```
+
+**Description**: Triggered when the selected cell changes.
+
+### CellKeyDownArgs
+
+```tsx
+type CellKeyDownArgs<TRow, TSummaryRow = unknown> =
+  | SelectCellKeyDownArgs<TRow, TSummaryRow>
+  | EditCellKeyDownArgs<TRow, TSummaryRow>;
+
+interface SelectCellKeyDownArgs<TRow, TSummaryRow> {
+  mode: 'SELECT';
+  column: CalculatedColumn<TRow, TSummaryRow> | undefined;
+  row: TRow;
+  rowIdx: number;
+  selectCell: (position: Position, options?: SelectCellOptions) => void;
+}
+
+interface EditCellKeyDownArgs<TRow, TSummaryRow> {
+  mode: 'EDIT';
+  column: CalculatedColumn<TRow, TSummaryRow>;
+  row: TRow;
+  rowIdx: number;
+  navigate: () => void;
+  onClose: (commitChanges?: boolean, shouldFocusCell?: boolean) => void;
+}
+```
+
+### CellKeyboardEvent
+
+```tsx
+type CellKeyboardEvent = CellEvent<React.KeyboardEvent<HTMLDivElement>>;
+
+interface CellEvent<E> extends E {
+  preventGridDefault: () => void;
+  isGridDefaultPrevented: () => boolean;
+}
+```
+
+**Methods**:
+- `preventGridDefault()`: Prevent the grid's default keyboard behavior
+- `isGridDefaultPrevented()`: Check if default was prevented
+
+### DataGridHandle
+
+```tsx
+interface DataGridHandle {
+  element: HTMLDivElement | null;
+  scrollToCell: (position: PartialPosition) => void;
+  selectCell: (position: Position, options?: SelectCellOptions) => void;
+}
+```
+
+## Related Features
+
+- [Row Selection](/features/row-selection) - Select rows with keyboard
+- [Cell Editing](/features/cell-editing) - Edit cells via keyboard
+- [Row Grouping](/features/row-grouping) - Tree navigation with arrow keys
+- [Copy & Paste](/features/copy-paste) - Keyboard shortcuts for data transfer

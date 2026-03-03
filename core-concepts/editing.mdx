@@ -1,0 +1,487 @@
+---
+title: Cell Editing
+description: Enable inline editing with custom editors
+---
+
+## Overview
+
+React Data Grid supports inline cell editing with built-in editors or custom editor components. Editing is controlled through column configuration and row change handlers.
+
+## Quick Start
+
+Enable editing with the `editable` property and `onRowsChange` callback:
+
+```tsx
+import { useState } from 'react';
+import { DataGrid, type Column } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  name: string;
+  email: string;
+}
+
+const columns: readonly Column<Row>[] = [
+  { key: 'id', name: 'ID' },
+  { key: 'name', name: 'Name', editable: true },
+  { key: 'email', name: 'Email', editable: true }
+];
+
+function MyGrid() {
+  const [rows, setRows] = useState(initialRows);
+
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      onRowsChange={setRows}
+    />
+  );
+}
+```
+
+<Note>
+  By default, double-click a cell to start editing. The grid uses a text input editor when no custom editor is provided.
+</Note>
+
+## Column Configuration
+
+<ParamField path="editable" type="boolean | ((row: TRow) => boolean)" default={false}>
+  Enable cell editing. Can be a boolean or a function for conditional editing.
+  
+  ```tsx
+  const columns: Column<Row>[] = [
+    {
+      key: 'name',
+      name: 'Name',
+      editable: true // Always editable
+    },
+    {
+      key: 'status',
+      name: 'Status',
+      editable: (row) => row.isActive // Conditionally editable
+    }
+  ];
+  ```
+</ParamField>
+
+<ParamField path="renderEditCell" type="(props: RenderEditCellProps<TRow, TSummaryRow>) => ReactNode">
+  Custom editor component. When set, the column is automatically editable.
+</ParamField>
+
+## Built-in Text Editor
+
+Use the provided text editor:
+
+```tsx
+import { renderTextEditor, type Column } from 'react-data-grid';
+
+const columns: readonly Column<Row>[] = [
+  {
+    key: 'title',
+    name: 'Title',
+    renderEditCell: renderTextEditor
+  }
+];
+```
+
+## Custom Editors
+
+Create custom editor components:
+
+### Text Input Editor
+
+```tsx
+import type { RenderEditCellProps } from 'react-data-grid';
+
+function TextEditor({ row, column, onRowChange, onClose }: RenderEditCellProps<Row>) {
+  return (
+    <input
+      className="rdg-text-editor"
+      autoFocus
+      value={row[column.key as keyof Row] as string}
+      onChange={(event) =>
+        onRowChange({ ...row, [column.key]: event.target.value })
+      }
+      onBlur={() => onClose(true)}
+    />
+  );
+}
+
+const columns: Column<Row>[] = [
+  {
+    key: 'name',
+    name: 'Name',
+    renderEditCell: TextEditor
+  }
+];
+```
+
+### Dropdown Editor
+
+```tsx
+import type { RenderEditCellProps } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  status: string;
+}
+
+const statuses = ['pending', 'active', 'completed'];
+
+function DropdownEditor({ row, column, onRowChange, onClose }: RenderEditCellProps<Row>) {
+  return (
+    <select
+      autoFocus
+      value={row.status}
+      onChange={(event) => {
+        onRowChange({ ...row, status: event.target.value }, true);
+        onClose(true);
+      }}
+      onBlur={() => onClose(true)}
+    >
+      {statuses.map((status) => (
+        <option key={status} value={status}>
+          {status}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+const columns: Column<Row>[] = [
+  {
+    key: 'status',
+    name: 'Status',
+    renderEditCell: DropdownEditor
+  }
+];
+```
+
+### Number Editor
+
+```tsx
+import type { RenderEditCellProps } from 'react-data-grid';
+
+function NumberEditor({ row, column, onRowChange, onClose }: RenderEditCellProps<Row>) {
+  return (
+    <input
+      type="number"
+      autoFocus
+      value={row[column.key as keyof Row] as number}
+      onChange={(event) =>
+        onRowChange({ ...row, [column.key]: Number(event.target.value) })
+      }
+      onBlur={() => onClose(true)}
+    />
+  );
+}
+```
+
+## Editor Props
+
+The `renderEditCell` function receives these props:
+
+```typescript
+interface RenderEditCellProps<TRow, TSummaryRow = unknown> {
+  /** The column being edited */
+  column: CalculatedColumn<TRow, TSummaryRow>;
+  
+  /** Current row data */
+  row: TRow;
+  
+  /** Row index */
+  rowIdx: number;
+  
+  /** Update row data */
+  onRowChange: (row: TRow, commitChanges?: boolean) => void;
+  
+  /** Close the editor */
+  onClose: (commitChanges?: boolean, shouldFocusCell?: boolean) => void;
+}
+```
+
+<ParamField path="onRowChange" type="(row: TRow, commitChanges?: boolean) => void">
+  Updates the row data. Pass `true` as the second argument to commit changes immediately.
+  
+  ```tsx
+  // Update without committing (onChange)
+  onRowChange({ ...row, name: 'New Name' });
+  
+  // Update and commit (onBlur, Enter key)
+  onRowChange({ ...row, name: 'New Name' }, true);
+  ```
+</ParamField>
+
+<ParamField path="onClose" type="(commitChanges?: boolean, shouldFocusCell?: boolean) => void">
+  Closes the editor.
+  - `commitChanges`: Whether to save or discard changes
+  - `shouldFocusCell`: Whether to focus the cell after closing
+  
+  ```tsx
+  // Save and close
+  onClose(true);
+  
+  // Cancel and close
+  onClose(false);
+  ```
+</ParamField>
+
+## Editor Options
+
+<ParamField path="editorOptions" type="object">
+  Additional configuration for cell editing behavior.
+</ParamField>
+
+<ParamField path="editorOptions.displayCellContent" type="boolean" default={false}>
+  Render cell content alongside the editor. Useful for modal editors.
+  
+  ```tsx
+  const columns: Column<Row>[] = [
+    {
+      key: 'description',
+      name: 'Description',
+      renderEditCell: ModalEditor,
+      editorOptions: {
+        displayCellContent: true
+      }
+    }
+  ];
+  ```
+</ParamField>
+
+<ParamField path="editorOptions.commitOnOutsideClick" type="boolean" default={true}>
+  Automatically commit changes when clicking outside the cell.
+  
+  ```tsx
+  editorOptions: {
+    commitOnOutsideClick: false // Must press Enter to commit
+  }
+  ```
+</ParamField>
+
+<ParamField path="editorOptions.closeOnExternalRowChange" type="boolean" default={true}>
+  Close the editor when row data changes externally.
+</ParamField>
+
+## Opening Editors
+
+### Double Click (Default)
+
+Double-click a cell to open the editor.
+
+### Single Click
+
+Open editor on single click using `onCellClick`:
+
+```tsx
+import type { CellMouseArgs, CellMouseEvent } from 'react-data-grid';
+
+function onCellClick(args: CellMouseArgs<Row>, event: CellMouseEvent) {
+  if (args.column.key === 'name') {
+    args.selectCell(true); // true = open editor immediately
+  }
+}
+
+<DataGrid
+  columns={columns}
+  rows={rows}
+  onCellClick={onCellClick}
+/>
+```
+
+### Keyboard
+
+- Press `Enter` to open the editor
+- Start typing to open the editor and replace content
+- Press `Escape` to cancel editing
+- Press `Tab` to save and move to the next cell
+
+## Handling Changes
+
+The `onRowsChange` callback provides the updated rows and metadata:
+
+```tsx
+import type { RowsChangeData } from 'react-data-grid';
+
+function handleRowsChange(newRows: Row[], data: RowsChangeData<Row>) {
+  console.log('Changed rows:', data.indexes);
+  console.log('Changed column:', data.column.key);
+  setRows(newRows);
+}
+
+<DataGrid
+  columns={columns}
+  rows={rows}
+  onRowsChange={handleRowsChange}
+/>
+```
+
+## Cell Copy & Paste
+
+Enable copy and paste with callbacks:
+
+<ParamField path="onCellCopy" type="(args: CellCopyArgs<R, SR>, event: CellClipboardEvent) => void">
+  Callback when a cell's content is copied.
+</ParamField>
+
+<ParamField path="onCellPaste" type="(args: CellPasteArgs<R, SR>, event: CellClipboardEvent) => R">
+  Callback when content is pasted. Return the updated row.
+  
+  ```tsx
+  function handlePaste(
+    args: CellPasteArgs<Row>,
+    event: React.ClipboardEvent
+  ): Row {
+    const text = event.clipboardData.getData('text/plain');
+    return { ...args.row, [args.column.key]: text };
+  }
+  
+  <DataGrid
+    columns={columns}
+    rows={rows}
+    onRowsChange={setRows}
+    onCellPaste={handlePaste}
+  />
+  ```
+</ParamField>
+
+## Fill Handle
+
+Drag the cell's fill handle to copy values to adjacent cells:
+
+<ParamField path="onFill" type="(event: FillEvent<R>) => R">
+  Callback when the fill handle is used. Return the updated target row.
+  
+  ```tsx
+  function handleFill({ sourceRow, targetRow, columnKey }: FillEvent<Row>): Row {
+    return { ...targetRow, [columnKey]: sourceRow[columnKey] };
+  }
+  
+  <DataGrid
+    columns={columns}
+    rows={rows}
+    onRowsChange={setRows}
+    onFill={handleFill}
+  />
+  ```
+</ParamField>
+
+<Note>
+  The fill handle appears in the bottom-right corner of the selected cell when `onFill` is provided.
+</Note>
+
+## Validation
+
+Implement validation in your editor:
+
+```tsx
+import { useState } from 'react';
+import type { RenderEditCellProps } from 'react-data-grid';
+
+function ValidatedEditor({ row, column, onRowChange, onClose }: RenderEditCellProps<Row>) {
+  const [value, setValue] = useState(row[column.key as keyof Row] as string);
+  const [error, setError] = useState('');
+
+  function validate(val: string) {
+    if (val.length < 3) {
+      setError('Must be at least 3 characters');
+      return false;
+    }
+    setError('');
+    return true;
+  }
+
+  function handleBlur() {
+    if (validate(value)) {
+      onRowChange({ ...row, [column.key]: value }, true);
+      onClose(true);
+    }
+  }
+
+  return (
+    <div>
+      <input
+        autoFocus
+        value={value}
+        onChange={(e) => {
+          setValue(e.target.value);
+          validate(e.target.value);
+        }}
+        onBlur={handleBlur}
+      />
+      {error && <div className="error">{error}</div>}
+    </div>
+  );
+}
+```
+
+## Keyboard Navigation
+
+Control editor behavior with keyboard events:
+
+```tsx
+import type { CellKeyDownArgs, CellKeyboardEvent } from 'react-data-grid';
+
+function onCellKeyDown(args: CellKeyDownArgs<Row>, event: CellKeyboardEvent) {
+  // Prevent editor from opening on Enter
+  if (args.mode === 'SELECT' && event.key === 'Enter') {
+    event.preventGridDefault();
+  }
+  
+  // Custom behavior in edit mode
+  if (args.mode === 'EDIT' && event.key === 'Escape') {
+    args.onClose(false); // Discard changes
+    event.preventGridDefault();
+  }
+}
+
+<DataGrid
+  columns={columns}
+  rows={rows}
+  onCellKeyDown={onCellKeyDown}
+/>
+```
+
+## TypeScript Types
+
+```typescript
+interface Column<TRow, TSummaryRow = unknown> {
+  /** Enable editing */
+  readonly editable?: Maybe<boolean | ((row: TRow) => boolean)>;
+  
+  /** Custom editor component */
+  readonly renderEditCell?: Maybe<(props: RenderEditCellProps<TRow, TSummaryRow>) => ReactNode>;
+  
+  /** Editor configuration */
+  readonly editorOptions?: Maybe<{
+    readonly displayCellContent?: Maybe<boolean>;
+    readonly commitOnOutsideClick?: Maybe<boolean>;
+    readonly closeOnExternalRowChange?: Maybe<boolean>;
+  }>;
+}
+
+interface RenderEditCellProps<TRow, TSummaryRow = unknown> {
+  column: CalculatedColumn<TRow, TSummaryRow>;
+  row: TRow;
+  rowIdx: number;
+  onRowChange: (row: TRow, commitChanges?: boolean) => void;
+  onClose: (commitChanges?: boolean, shouldFocusCell?: boolean) => void;
+}
+
+interface FillEvent<TRow> {
+  columnKey: string;
+  sourceRow: TRow;
+  targetRow: TRow;
+}
+
+interface CellCopyArgs<TRow, TSummaryRow = unknown> {
+  column: CalculatedColumn<TRow, TSummaryRow>;
+  row: TRow;
+}
+
+interface CellPasteArgs<TRow, TSummaryRow = unknown> {
+  column: CalculatedColumn<TRow, TSummaryRow>;
+  row: TRow;
+}
+```

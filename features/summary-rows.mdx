@@ -1,0 +1,504 @@
+---
+title: Summary Rows
+description: Add summary rows at the top or bottom of the grid for aggregated data
+---
+
+Summary rows are special rows pinned at the top or bottom of the grid that display aggregated data, such as totals, averages, or counts.
+
+## Basic Usage
+
+Add summary rows using `topSummaryRows` or `bottomSummaryRows` props:
+
+```tsx
+import { DataGrid, type Column } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  product: string;
+  price: number;
+  quantity: number;
+}
+
+interface SummaryRow {
+  id: string;
+  totalPrice: number;
+  totalQuantity: number;
+}
+
+const columns: Column<Row, SummaryRow>[] = [
+  { key: 'id', name: 'ID' },
+  { key: 'product', name: 'Product' },
+  { key: 'price', name: 'Price' },
+  { key: 'quantity', name: 'Quantity' }
+];
+
+const rows: Row[] = [
+  { id: 1, product: 'Widget', price: 10.50, quantity: 100 },
+  { id: 2, product: 'Gadget', price: 25.00, quantity: 50 },
+  { id: 3, product: 'Doohickey', price: 15.75, quantity: 75 }
+];
+
+const summaryRows: SummaryRow[] = [
+  {
+    id: 'total',
+    totalPrice: rows.reduce((sum, r) => sum + r.price * r.quantity, 0),
+    totalQuantity: rows.reduce((sum, r) => sum + r.quantity, 0)
+  }
+];
+
+function MyGrid() {
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      bottomSummaryRows={summaryRows}
+    />
+  );
+}
+```
+
+<Tabs>
+  <Tab title="Bottom Summary">
+    ```tsx
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      bottomSummaryRows={summaryRows}
+    />
+    ```
+    
+    Summary rows pinned at the bottom. Most common for totals.
+  </Tab>
+  
+  <Tab title="Top Summary">
+    ```tsx
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      topSummaryRows={summaryRows}
+    />
+    ```
+    
+    Summary rows pinned at the top. Useful for averages or metadata.
+  </Tab>
+  
+  <Tab title="Both">
+    ```tsx
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      topSummaryRows={topSummaries}
+      bottomSummaryRows={bottomSummaries}
+    />
+    ```
+    
+    Multiple summary rows at both positions.
+  </Tab>
+</Tabs>
+
+## Custom Summary Cell Renderers
+
+Render summary cells with custom components:
+
+```tsx
+import type { RenderSummaryCellProps } from 'react-data-grid';
+
+function TotalPriceCell({ row }: RenderSummaryCellProps<SummaryRow>) {
+  return (
+    <strong style={{ color: 'green' }}>
+      ${row.totalPrice.toFixed(2)}
+    </strong>
+  );
+}
+
+const columns: Column<Row, SummaryRow>[] = [
+  { key: 'id', name: 'ID' },
+  { key: 'product', name: 'Product' },
+  {
+    key: 'price',
+    name: 'Price',
+    renderSummaryCell: TotalPriceCell
+  },
+  { key: 'quantity', name: 'Quantity' }
+];
+```
+
+<Accordion title="Complex Summary Cells">
+  Create rich summary cells with multiple values:
+  
+  ```tsx
+  interface SummaryRow {
+    id: string;
+    stats: {
+      total: number;
+      average: number;
+      min: number;
+      max: number;
+    };
+  }
+  
+  function StatsSummaryCell({ row }: RenderSummaryCellProps<SummaryRow, Row>) {
+    return (
+      <div style={{ padding: '8px', fontSize: '12px' }}>
+        <div><strong>Total:</strong> {row.stats.total}</div>
+        <div><strong>Avg:</strong> {row.stats.average.toFixed(2)}</div>
+        <div><strong>Min:</strong> {row.stats.min}</div>
+        <div><strong>Max:</strong> {row.stats.max}</div>
+      </div>
+    );
+  }
+  
+  const columns: Column<Row, SummaryRow>[] = [
+    {
+      key: 'value',
+      name: 'Value',
+      renderSummaryCell: StatsSummaryCell
+    }
+  ];
+  ```
+</Accordion>
+
+## Dynamic Summary Rows
+
+Recalculate summaries when data changes:
+
+```tsx
+import { useMemo } from 'react';
+
+function MyGrid() {
+  const [rows, setRows] = useState<Row[]>(initialRows);
+  
+  const summaryRows = useMemo((): SummaryRow[] => {
+    const totalPrice = rows.reduce((sum, r) => sum + r.price * r.quantity, 0);
+    const totalQuantity = rows.reduce((sum, r) => sum + r.quantity, 0);
+    const avgPrice = totalPrice / rows.length;
+    
+    return [
+      {
+        id: 'total',
+        label: 'Total',
+        totalPrice,
+        totalQuantity,
+        avgPrice
+      }
+    ];
+  }, [rows]);
+  
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      onRowsChange={setRows}
+      bottomSummaryRows={summaryRows}
+    />
+  );
+}
+```
+
+<Tip>
+Use `useMemo` to recalculate summaries only when data changes. This prevents unnecessary re-renders.
+</Tip>
+
+## Multiple Summary Rows
+
+Add multiple summary rows for different aggregations:
+
+```tsx
+interface SummaryRow {
+  id: string;
+  label: string;
+  value: number;
+}
+
+const summaryRows: SummaryRow[] = [
+  { id: 'subtotal', label: 'Subtotal', value: 1000 },
+  { id: 'tax', label: 'Tax (10%)', value: 100 },
+  { id: 'total', label: 'Total', value: 1100 }
+];
+
+function SummaryLabelCell({ row }: RenderSummaryCellProps<SummaryRow>) {
+  const isTotalRow = row.id === 'total';
+  return (
+    <div style={{ fontWeight: isTotalRow ? 'bold' : 'normal' }}>
+      {row.label}
+    </div>
+  );
+}
+
+function SummaryValueCell({ row }: RenderSummaryCellProps<SummaryRow>) {
+  const isTotalRow = row.id === 'total';
+  return (
+    <div style={{
+      fontWeight: isTotalRow ? 'bold' : 'normal',
+      borderTop: isTotalRow ? '2px solid #000' : 'none'
+    }}>
+      ${row.value.toFixed(2)}
+    </div>
+  );
+}
+
+const columns: Column<Row, SummaryRow>[] = [
+  {
+    key: 'product',
+    name: 'Product',
+    renderSummaryCell: SummaryLabelCell
+  },
+  {
+    key: 'price',
+    name: 'Price',
+    renderSummaryCell: SummaryValueCell
+  }
+];
+```
+
+## Summary Row Height
+
+Customize summary row height:
+
+```tsx
+<DataGrid
+  columns={columns}
+  rows={rows}
+  rowHeight={35}
+  summaryRowHeight={50} // Taller summary rows
+  bottomSummaryRows={summaryRows}
+/>
+```
+
+<Accordion title="Height Configuration">
+  From src/DataGrid.tsx:
+  ```tsx
+  const summaryRowHeight = rawSummaryRowHeight ?? (typeof rowHeight === 'number' ? rowHeight : 35);
+  ```
+  
+  Default behavior:
+  - If `summaryRowHeight` is specified, use that value
+  - Else if `rowHeight` is a number, use that
+  - Else default to 35 pixels
+</Accordion>
+
+## Styling Summary Rows
+
+### Using Column Properties
+
+Apply styles via column configuration:
+
+```tsx
+const columns: Column<Row, SummaryRow>[] = [
+  {
+    key: 'product',
+    name: 'Product',
+    summaryCellClass: 'summary-cell-bold'
+  },
+  {
+    key: 'price',
+    name: 'Price',
+    summaryCellClass: (row) => row.id === 'total' ? 'total-row' : 'subtotal-row'
+  }
+];
+```
+
+```css
+.summary-cell-bold {
+  font-weight: bold;
+  background-color: #f5f5f5;
+}
+
+.total-row {
+  font-weight: bold;
+  font-size: 16px;
+  border-top: 2px solid #000;
+  background-color: #e8e8e8;
+}
+
+.subtotal-row {
+  color: #666;
+  font-style: italic;
+}
+```
+
+### Using CSS Variables
+
+Customize appearance using CSS variables:
+
+```css
+.my-grid {
+  --rdg-summary-border-width: 2px;
+  --rdg-summary-border-color: #333;
+}
+
+.my-grid .rdg-summary-row {
+  background-color: #fafafa;
+  font-weight: 600;
+}
+```
+
+## Summary Rows with Column Spanning
+
+Span summary cells across multiple columns:
+
+```tsx
+const columns: Column<Row, SummaryRow>[] = [
+  { key: 'id', name: 'ID' },
+  { key: 'product', name: 'Product' },
+  { key: 'category', name: 'Category' },
+  {
+    key: 'price',
+    name: 'Price',
+    colSpan(args) {
+      if (args.type === 'SUMMARY' && args.row.id === 'grand-total') {
+        return 3; // Span across product, category, and price columns
+      }
+      return undefined;
+    },
+    renderSummaryCell({ row }) {
+      if (row.id === 'grand-total') {
+        return (
+          <div style={{ textAlign: 'right', fontWeight: 'bold' }}>
+            Grand Total: ${row.totalPrice.toFixed(2)}
+          </div>
+        );
+      }
+      return <div>${row.totalPrice.toFixed(2)}</div>;
+    }
+  },
+  { key: 'quantity', name: 'Quantity' }
+];
+```
+
+<Info>
+The `colSpan` function receives `args.type === 'SUMMARY'` for summary rows, allowing different spanning behavior than regular rows.
+</Info>
+
+## Sticky Summary Rows
+
+Summary rows are automatically sticky:
+
+- **Top summary rows**: Sticky below the header
+- **Bottom summary rows**: Sticky at the bottom of the viewport
+
+```tsx
+// From src/DataGrid.tsx - bottom summary positioning
+const top =
+  clientHeight > totalRowHeight
+    ? gridHeight - summaryRowHeight * (bottomSummaryRowsCount - rowIdx)
+    : undefined;
+const bottom =
+  top === undefined
+    ? summaryRowHeight * (bottomSummaryRowsCount - 1 - rowIdx)
+    : undefined;
+```
+
+<Accordion title="Scroll Behavior">
+  - When grid content is taller than viewport:
+    - Bottom summary rows stick to the bottom of the viewport
+    - They remain visible while scrolling through rows
+  
+  - When grid content fits in viewport:
+    - Bottom summary rows appear at their natural position
+    - They're positioned immediately after the last row
+</Accordion>
+
+## Summary Rows with Selection
+
+Summary rows are not selectable and don't participate in row selection:
+
+```tsx
+import { SelectColumn } from 'react-data-grid';
+
+const columns = [
+  SelectColumn,
+  { key: 'product', name: 'Product' },
+  { key: 'price', name: 'Price' }
+];
+
+// Selection checkbox appears in regular rows but not in summary rows
+<DataGrid
+  columns={columns}
+  rows={rows}
+  bottomSummaryRows={summaryRows}
+  rowKeyGetter={(row) => row.id}
+  selectedRows={selectedRows}
+  onSelectedRowsChange={setSelectedRows}
+/>
+```
+
+## API Reference
+
+### DataGrid Props
+
+#### topSummaryRows
+
+```tsx
+topSummaryRows?: readonly SR[] | undefined | null
+```
+
+**Description**: Rows pinned at the top of the grid for summary purposes.
+
+#### bottomSummaryRows
+
+```tsx
+bottomSummaryRows?: readonly SR[] | undefined | null
+```
+
+**Description**: Rows pinned at the bottom of the grid for summary purposes.
+
+#### summaryRowHeight
+
+```tsx
+summaryRowHeight?: number | undefined | null
+```
+
+**Default**: `rowHeight` (if number), otherwise `35`
+
+**Description**: Height of summary rows in pixels.
+
+### Column Properties
+
+#### renderSummaryCell
+
+```tsx
+renderSummaryCell?: (props: RenderSummaryCellProps<TSummaryRow, TRow>) => ReactNode
+```
+
+**Description**: Custom render function for summary cells.
+
+#### summaryCellClass
+
+```tsx
+summaryCellClass?: string | ((row: TSummaryRow) => string | undefined | null) | undefined | null
+```
+
+**Description**: CSS class name(s) for summary cells. Can be a string or function.
+
+### RenderSummaryCellProps
+
+```tsx
+interface RenderSummaryCellProps<TSummaryRow, TRow = unknown> {
+  column: CalculatedColumn<TRow, TSummaryRow>;
+  row: TSummaryRow;
+  tabIndex: number;
+}
+```
+
+**Properties**:
+- `column`: The column configuration
+- `row`: The summary row data
+- `tabIndex`: Tab index for keyboard navigation
+
+### ColSpanArgs for Summary
+
+```tsx
+type ColSpanArgs<TRow, TSummaryRow> =
+  | { type: 'HEADER' }
+  | { type: 'ROW'; row: TRow }
+  | { type: 'SUMMARY'; row: TSummaryRow };
+```
+
+When `args.type === 'SUMMARY'`, you can access `args.row` to make spanning decisions based on summary data.
+
+## Related Features
+
+- [Cell Spanning](/features/cell-spanning) - Span summary cells across columns
+- [Row Grouping](/features/row-grouping) - Combine with grouped data
+- [Custom Renderers](/features/custom-renderers) - Advanced summary cell rendering

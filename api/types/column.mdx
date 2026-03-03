@@ -1,0 +1,309 @@
+---
+title: 'Column Types'
+description: 'Column, ColumnGroup, and CalculatedColumn type definitions'
+---
+
+## Column\<TRow, TSummaryRow\>
+
+Defines the configuration for a column in the grid.
+
+```typescript
+interface Column<TRow, TSummaryRow = unknown> {
+  readonly name: string | ReactElement;
+  readonly key: string;
+  readonly width?: Maybe<number | string>;
+  readonly minWidth?: Maybe<number>;
+  readonly maxWidth?: Maybe<number>;
+  readonly cellClass?: Maybe<string | ((row: TRow) => Maybe<string>)>;
+  readonly headerCellClass?: Maybe<string>;
+  readonly summaryCellClass?: Maybe<string | ((row: TSummaryRow) => Maybe<string>)>;
+  readonly renderCell?: Maybe<(props: RenderCellProps<TRow, TSummaryRow>) => ReactNode>;
+  readonly renderHeaderCell?: Maybe<(props: RenderHeaderCellProps<TRow, TSummaryRow>) => ReactNode>;
+  readonly renderSummaryCell?: Maybe<(props: RenderSummaryCellProps<TSummaryRow, TRow>) => ReactNode>;
+  readonly renderGroupCell?: Maybe<(props: RenderGroupCellProps<TRow, TSummaryRow>) => ReactNode>;
+  readonly renderEditCell?: Maybe<(props: RenderEditCellProps<TRow, TSummaryRow>) => ReactNode>;
+  readonly editable?: Maybe<boolean | ((row: TRow) => boolean)>;
+  readonly colSpan?: Maybe<(args: ColSpanArgs<TRow, TSummaryRow>) => Maybe<number>>;
+  readonly frozen?: Maybe<boolean>;
+  readonly resizable?: Maybe<boolean>;
+  readonly sortable?: Maybe<boolean>;
+  readonly draggable?: Maybe<boolean>;
+  readonly sortDescendingFirst?: Maybe<boolean>;
+  readonly editorOptions?: Maybe<{
+    readonly displayCellContent?: Maybe<boolean>;
+    readonly commitOnOutsideClick?: Maybe<boolean>;
+    readonly closeOnExternalRowChange?: Maybe<boolean>;
+  }>;
+}
+```
+
+### Properties
+
+<ParamField path="name" type="string | ReactElement" required>
+  The name of the column. Displayed in the header cell by default.
+</ParamField>
+
+<ParamField path="key" type="string" required>
+  A unique key to distinguish each column.
+</ParamField>
+
+<ParamField path="width" type="number | string" default="'auto'">
+  Column width. If not specified, it will be determined automatically based on grid width and specified widths of other columns.
+  
+  Can be:
+  - A number (pixels): `80`
+  - A percentage: `'25%'`
+  - CSS grid values: `'max-content'`, `'minmax(100px, max-content)'`
+</ParamField>
+
+<ParamField path="minWidth" type="number" default="50">
+  Minimum column width in pixels.
+</ParamField>
+
+<ParamField path="maxWidth" type="number">
+  Maximum column width in pixels.
+</ParamField>
+
+<ParamField path="cellClass" type="string | ((row: TRow) => Maybe<string>)">
+  Class name(s) for cells. Can be a string or a function that returns a class name based on the row.
+</ParamField>
+
+<ParamField path="headerCellClass" type="string">
+  Class name(s) for the header cell.
+</ParamField>
+
+<ParamField path="summaryCellClass" type="string | ((row: TSummaryRow) => Maybe<string>)">
+  Class name(s) for summary cells. Can be a string or a function that returns a class name based on the summary row.
+</ParamField>
+
+<ParamField path="renderCell" type="(props: RenderCellProps<TRow, TSummaryRow>) => ReactNode">
+  Render function to render the content of cells.
+</ParamField>
+
+<ParamField path="renderHeaderCell" type="(props: RenderHeaderCellProps<TRow, TSummaryRow>) => ReactNode">
+  Render function to render the content of the header cell.
+</ParamField>
+
+<ParamField path="renderSummaryCell" type="(props: RenderSummaryCellProps<TSummaryRow, TRow>) => ReactNode">
+  Render function to render the content of summary cells.
+</ParamField>
+
+<ParamField path="renderGroupCell" type="(props: RenderGroupCellProps<TRow, TSummaryRow>) => ReactNode">
+  Render function to render the content of group cells when using TreeDataGrid.
+</ParamField>
+
+<ParamField path="renderEditCell" type="(props: RenderEditCellProps<TRow, TSummaryRow>) => ReactNode">
+  Render function to render the content of edit cells. When set, the column is automatically set to be editable.
+</ParamField>
+
+<ParamField path="editable" type="boolean | ((row: TRow) => boolean)">
+  Enables cell editing. If set and no editor property specified, then a text input will be used as the cell editor.
+</ParamField>
+
+<ParamField path="colSpan" type="(args: ColSpanArgs<TRow, TSummaryRow>) => Maybe<number>">
+  Function to determine how many columns this cell should span. Returns the number of columns to span, or undefined for no spanning.
+</ParamField>
+
+<ParamField path="frozen" type="boolean" default="false">
+  Determines whether column is frozen. Frozen columns are pinned to the start edge (left in LTR, right in RTL).
+</ParamField>
+
+<ParamField path="resizable" type="boolean" default="false">
+  Enable resizing of the column.
+</ParamField>
+
+<ParamField path="sortable" type="boolean" default="false">
+  Enable sorting of the column.
+</ParamField>
+
+<ParamField path="draggable" type="boolean" default="false">
+  Enable dragging of the column.
+</ParamField>
+
+<ParamField path="sortDescendingFirst" type="boolean" default="false">
+  Sets the column sort order to be descending instead of ascending the first time the column is sorted.
+</ParamField>
+
+<ParamField path="editorOptions" type="object">
+  Options for cell editing.
+  
+  <ParamField path="displayCellContent" type="boolean" default="false">
+    Render the cell content in addition to the edit cell content. Enable this option when the editor is rendered outside the grid, like a modal for example. By default, the cell content is not rendered when the edit cell is open.
+  </ParamField>
+  
+  <ParamField path="commitOnOutsideClick" type="boolean" default="true">
+    Commit changes when clicking outside the cell.
+  </ParamField>
+  
+  <ParamField path="closeOnExternalRowChange" type="boolean" default="true">
+    Close the editor when the row value changes externally.
+  </ParamField>
+</ParamField>
+
+---
+
+## CalculatedColumn\<TRow, TSummaryRow\>
+
+Extends `Column` with additional computed properties used internally by the grid. This is the type passed to render functions.
+
+```typescript
+interface CalculatedColumn<TRow, TSummaryRow = unknown> extends Column<TRow, TSummaryRow> {
+  readonly parent: CalculatedColumnParent<TRow, TSummaryRow> | undefined;
+  readonly idx: number;
+  readonly level: number;
+  readonly width: number | string;
+  readonly minWidth: number;
+  readonly maxWidth: number | undefined;
+  readonly resizable: boolean;
+  readonly sortable: boolean;
+  readonly draggable: boolean;
+  readonly frozen: boolean;
+  readonly renderCell: (props: RenderCellProps<TRow, TSummaryRow>) => ReactNode;
+  readonly renderHeaderCell: (props: RenderHeaderCellProps<TRow, TSummaryRow>) => ReactNode;
+}
+```
+
+### Properties
+
+Inherits all properties from `Column<TRow, TSummaryRow>` with the following additions and modifications:
+
+<ParamField path="parent" type="CalculatedColumnParent<TRow, TSummaryRow> | undefined">
+  Parent column group if nested.
+</ParamField>
+
+<ParamField path="idx" type="number">
+  The column index.
+</ParamField>
+
+<ParamField path="level" type="number">
+  Nesting level when using column groups.
+</ParamField>
+
+<ParamField path="width" type="number | string" required>
+  Column width (non-optional, computed from Column.width or defaults).
+</ParamField>
+
+<ParamField path="minWidth" type="number" required>
+  Minimum column width in pixels (non-optional, defaults to 50).
+</ParamField>
+
+<ParamField path="maxWidth" type="number | undefined" required>
+  Maximum column width in pixels (non-optional).
+</ParamField>
+
+<ParamField path="resizable" type="boolean" required>
+  Whether column is resizable (non-optional, defaults to false).
+</ParamField>
+
+<ParamField path="sortable" type="boolean" required>
+  Whether column is sortable (non-optional, defaults to false).
+</ParamField>
+
+<ParamField path="draggable" type="boolean" required>
+  Whether column is draggable (non-optional, defaults to false).
+</ParamField>
+
+<ParamField path="frozen" type="boolean" required>
+  Whether column is frozen (non-optional, defaults to false).
+</ParamField>
+
+<ParamField path="renderCell" type="(props: RenderCellProps<TRow, TSummaryRow>) => ReactNode" required>
+  Cell renderer (non-optional, defaults to renderValue).
+</ParamField>
+
+<ParamField path="renderHeaderCell" type="(props: RenderHeaderCellProps<TRow, TSummaryRow>) => ReactNode" required>
+  Header cell renderer (non-optional, defaults to renderHeaderCell).
+</ParamField>
+
+---
+
+## ColumnGroup\<TRow, TSummaryRow\>
+
+Defines a group of columns that share a common header.
+
+```typescript
+interface ColumnGroup<R, SR = unknown> {
+  readonly name: string | ReactElement;
+  readonly headerCellClass?: Maybe<string>;
+  readonly children: readonly ColumnOrColumnGroup<R, SR>[];
+}
+```
+
+### Properties
+
+<ParamField path="name" type="string | ReactElement" required>
+  The name of the column group. It will be displayed in the header cell.
+</ParamField>
+
+<ParamField path="headerCellClass" type="string">
+  Class name(s) for the header cell.
+</ParamField>
+
+<ParamField path="children" type="readonly ColumnOrColumnGroup<R, SR>[]" required>
+  Child columns or column groups.
+</ParamField>
+
+---
+
+## CalculatedColumnParent\<TRow, TSummaryRow\>
+
+Represents a parent column group in the calculated column structure.
+
+```typescript
+interface CalculatedColumnParent<R, SR> {
+  readonly name: string | ReactElement;
+  readonly parent: CalculatedColumnParent<R, SR> | undefined;
+  readonly idx: number;
+  readonly colSpan: number;
+  readonly level: number;
+  readonly headerCellClass?: Maybe<string>;
+}
+```
+
+### Properties
+
+<ParamField path="name" type="string | ReactElement" required>
+  The name of the column group.
+</ParamField>
+
+<ParamField path="parent" type="CalculatedColumnParent<R, SR> | undefined" required>
+  Parent column group if nested.
+</ParamField>
+
+<ParamField path="idx" type="number" required>
+  The column index.
+</ParamField>
+
+<ParamField path="colSpan" type="number" required>
+  Number of columns this group spans.
+</ParamField>
+
+<ParamField path="level" type="number" required>
+  Nesting level.
+</ParamField>
+
+<ParamField path="headerCellClass" type="string">
+  Class name(s) for the header cell.
+</ParamField>
+
+---
+
+## ColumnOrColumnGroup\<TRow, TSummaryRow\>
+
+Union type representing either a Column or a ColumnGroup.
+
+```typescript
+type ColumnOrColumnGroup<R, SR = unknown> = Column<R, SR> | ColumnGroup<R, SR>;
+```
+
+---
+
+## CalculatedColumnOrColumnGroup\<TRow, TSummaryRow\>
+
+Union type representing either a CalculatedColumnParent or a CalculatedColumn.
+
+```typescript
+type CalculatedColumnOrColumnGroup<R, SR> =
+  | CalculatedColumnParent<R, SR>
+  | CalculatedColumn<R, SR>;
+```

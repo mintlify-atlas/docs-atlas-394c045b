@@ -1,0 +1,566 @@
+---
+title: DataGrid
+description: Main component for rendering data grids with virtualization, sorting, editing, and more
+---
+
+## Overview
+
+The `DataGrid` component is the main entry point for rendering high-performance data grids. It supports virtualization, row/column selection, sorting, editing, custom renderers, and extensive keyboard accessibility.
+
+```tsx
+import { DataGrid } from 'react-data-grid';
+import 'react-data-grid/lib/styles.css';
+
+interface Row {
+  id: number;
+  title: string;
+}
+
+const columns = [
+  { key: 'id', name: 'ID' },
+  { key: 'title', name: 'Title' }
+];
+
+const rows = [
+  { id: 0, title: 'Example' },
+  { id: 1, title: 'Demo' }
+];
+
+function App() {
+  return <DataGrid columns={columns} rows={rows} />;
+}
+```
+
+## Props
+
+### Grid and Data
+
+<ParamField path="columns" type="readonly ColumnOrColumnGroup<R, SR>[]" required>
+  An array of column definitions and/or column groups. See the `Column` type for all available options.
+
+  <Warning>
+    **Performance:** Passing a new `columns` array will trigger a re-render and recalculation for the entire grid. Always memoize this prop using `useMemo` or define it outside the component to avoid unnecessary re-renders.
+  </Warning>
+</ParamField>
+
+<ParamField path="rows" type="readonly R[]" required>
+  An array of rows, the rows data can be of any type.
+
+  <Note>
+    **Performance:** The grid is optimized for efficient rendering:
+    - **Virtualization**: Only visible rows are rendered in the DOM
+    - **Individual row updates**: Row components are memoized, so updating a single row object will only re-render that specific row
+    - **Array reference matters**: Changing the array reference itself triggers viewport and layout recalculations
+    - **Best practice**: When updating rows, create a new array but reuse unchanged row objects
+  </Note>
+
+  ```tsx
+  // ✅ Good: Only changed row is re-rendered
+  setRows(rows.map((row, idx) => (idx === targetIdx ? { ...row, updated: true } : row)));
+
+  // ❌ Avoid: Creates new references for all rows
+  setRows(rows.map((row) => ({ ...row })));
+  ```
+</ParamField>
+
+<ParamField path="ref" type="React.Ref<DataGridHandle>">
+  Optional ref for imperative APIs like scrolling/selecting a cell.
+
+  ```tsx
+  const gridRef = useRef<DataGridHandle>(null);
+
+  function scrollToTop() {
+    gridRef.current?.scrollToCell({ rowIdx: 0 });
+  }
+
+  return <DataGrid ref={gridRef} columns={columns} rows={rows} />;
+  ```
+</ParamField>
+
+<ParamField path="topSummaryRows" type="readonly SR[]">
+  Rows pinned at the top of the grid for summary purposes.
+</ParamField>
+
+<ParamField path="bottomSummaryRows" type="readonly SR[]">
+  Rows pinned at the bottom of the grid for summary purposes.
+</ParamField>
+
+<ParamField path="rowKeyGetter" type="(row: R) => K">
+  Function to return a unique key/identifier for each row. `rowKeyGetter` is required for row selection to work.
+
+  ```tsx
+  function rowKeyGetter(row: Row) {
+    return row.id;
+  }
+
+  <DataGrid rowKeyGetter={rowKeyGetter} columns={columns} rows={rows} />
+  ```
+
+  <Note>
+    While optional, setting this prop is recommended for optimal performance as the returned value is used to set the `key` prop on the row elements.
+  </Note>
+
+  <Warning>
+    **Performance:** Define this function outside your component or memoize it with `useCallback` to prevent unnecessary re-renders.
+  </Warning>
+</ParamField>
+
+<ParamField path="onRowsChange" type="(rows: R[], data: RowsChangeData<R, SR>) => void">
+  Callback triggered when rows are changed.
+
+  The first parameter is a new rows array with both the updated rows and the other untouched rows. The second parameter contains `indexes` (array of changed row indices) and `column` (where the change happened).
+
+  ```tsx
+  const [rows, setRows] = useState(initialRows);
+
+  return <DataGrid columns={columns} rows={rows} onRowsChange={setRows} />;
+  ```
+</ParamField>
+
+### Dimensions
+
+<ParamField path="rowHeight" type="number | ((row: R) => number)" default="35">
+  Height of each row in pixels. A function can be used to set different row heights.
+
+  ```tsx
+  // Fixed height for all rows
+  <DataGrid rowHeight={50} columns={columns} rows={rows} />
+
+  // Dynamic height per row
+  function getRowHeight(row) {
+    return row.isExpanded ? 100 : 35;
+  }
+
+  <DataGrid rowHeight={getRowHeight} columns={columns} rows={rows} />
+  ```
+
+  <Warning>
+    **Performance:** When using a function, the heights of all rows are processed upfront. For large datasets (1000+ rows), this can cause performance issues if the identity of the function changes and invalidates internal memoization. Consider using a static function when possible.
+  </Warning>
+</ParamField>
+
+<ParamField path="headerRowHeight" type="number">
+  Height of the header row in pixels.
+
+  **Default:** `rowHeight` when it is a number, otherwise `35` pixels
+</ParamField>
+
+<ParamField path="summaryRowHeight" type="number">
+  Height of each summary row in pixels.
+
+  **Default:** `rowHeight` when it is a number, otherwise `35` pixels
+
+  ```tsx
+  <DataGrid
+    columns={columns}
+    rows={rows}
+    rowHeight={35}
+    headerRowHeight={45}
+    summaryRowHeight={40}
+    topSummaryRows={topSummaryRows}
+  />
+  ```
+</ParamField>
+
+<ParamField path="columnWidths" type="ColumnWidths">
+  A map of column widths containing both measured and resized widths. If not provided then an internal state is used.
+
+  ```tsx
+  const [columnWidths, setColumnWidths] = useState((): ColumnWidths => new Map());
+
+  return (
+    <DataGrid
+      columnWidths={columnWidths}
+      onColumnWidthsChange={setColumnWidths}
+      columns={columns}
+      rows={rows}
+    />
+  );
+  ```
+</ParamField>
+
+<ParamField path="onColumnWidthsChange" type="(columnWidths: ColumnWidths) => void">
+  Callback triggered when column widths change. If not provided then an internal state is used.
+</ParamField>
+
+### Selection
+
+<ParamField path="selectedRows" type="ReadonlySet<K>">
+  A set of selected row keys. `rowKeyGetter` is required for row selection to work.
+</ParamField>
+
+<ParamField path="isRowSelectionDisabled" type="(row: R) => boolean">
+  Function to determine if row selection is disabled for a specific row.
+
+  ```tsx
+  function isRowSelectionDisabled(row: Row) {
+    return !row.isActive;
+  }
+
+  <DataGrid
+    columns={columns}
+    rows={rows}
+    isRowSelectionDisabled={isRowSelectionDisabled}
+  />
+  ```
+</ParamField>
+
+<ParamField path="onSelectedRowsChange" type="(selectedRows: Set<K>) => void">
+  Callback triggered when the selection changes.
+
+  ```tsx
+  import { useState } from 'react';
+  import { DataGrid, SelectColumn } from 'react-data-grid';
+
+  const columns = [SelectColumn, ...otherColumns];
+
+  function MyGrid() {
+    const [selectedRows, setSelectedRows] = useState((): ReadonlySet<number> => new Set());
+
+    return (
+      <DataGrid
+        rowKeyGetter={rowKeyGetter}
+        columns={columns}
+        rows={rows}
+        selectedRows={selectedRows}
+        onSelectedRowsChange={setSelectedRows}
+      />
+    );
+  }
+  ```
+</ParamField>
+
+### Sorting
+
+<ParamField path="sortColumns" type="readonly SortColumn[]">
+  An array of sorted columns.
+
+  <Note>
+    Sorting is controlled: the grid does not reorder `rows` for you. Apply the sorting to your `rows` state (or derived rows) based on `sortColumns`.
+  </Note>
+</ParamField>
+
+<ParamField path="onSortColumnsChange" type="(sortColumns: SortColumn[]) => void">
+  Callback triggered when sorting changes.
+
+  ```tsx
+  const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>([]);
+
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      sortColumns={sortColumns}
+      onSortColumnsChange={setSortColumns}
+    />
+  );
+  ```
+
+  More than one column can be sorted via `ctrl (command) + click`. To disable multiple column sorting:
+
+  ```tsx
+  function onSortColumnsChange(sortColumns: SortColumn[]) {
+    setSortColumns(sortColumns.slice(-1));
+  }
+  ```
+</ParamField>
+
+<ParamField path="defaultColumnOptions" type="DefaultColumnOptions<R, SR>">
+  Default options applied to all columns.
+
+  ```tsx
+  <DataGrid
+    columns={columns}
+    rows={rows}
+    defaultColumnOptions={{
+      minWidth: 100,
+      resizable: true,
+      sortable: true,
+      draggable: true
+    }}
+  />
+  ```
+</ParamField>
+
+### Events
+
+<ParamField path="onCellMouseDown" type="CellMouseEventHandler<R, SR>">
+  Callback triggered when a pointer becomes active in a cell. The default behavior is to select the cell. Call `preventGridDefault` to prevent the default behavior.
+
+  ```tsx
+  function onCellMouseDown(args: CellMouseArgs<R, SR>, event: CellMouseEvent) {
+    if (args.column.key === 'id') {
+      event.preventGridDefault();
+    }
+  }
+
+  <DataGrid rows={rows} columns={columns} onCellMouseDown={onCellMouseDown} />
+  ```
+</ParamField>
+
+<ParamField path="onCellClick" type="CellMouseEventHandler<R, SR>">
+  Callback triggered when a cell is clicked.
+
+  This event can be used to open cell editor on single click:
+
+  ```tsx
+  function onCellClick(args: CellMouseArgs<R, SR>, event: CellMouseEvent) {
+    if (args.column.key === 'id') {
+      args.selectCell(true);
+    }
+  }
+  ```
+</ParamField>
+
+<ParamField path="onCellDoubleClick" type="CellMouseEventHandler<R, SR>">
+  Callback triggered when a cell is double-clicked. The default behavior is to open the editor if the cell is editable. Call `preventGridDefault` to prevent the default behavior.
+
+  ```tsx
+  function onCellDoubleClick(args: CellMouseArgs<R, SR>, event: CellMouseEvent) {
+    if (args.column.key === 'id') {
+      event.preventGridDefault();
+    }
+  }
+  ```
+</ParamField>
+
+<ParamField path="onCellContextMenu" type="CellMouseEventHandler<R, SR>">
+  Callback triggered when a cell is right-clicked.
+
+  ```tsx
+  function onCellContextMenu(args: CellMouseArgs<R, SR>, event: CellMouseEvent) {
+    if (args.column.key === 'id') {
+      event.preventDefault();
+      // open custom context menu
+    }
+  }
+  ```
+</ParamField>
+
+<ParamField path="onCellKeyDown" type="(args: CellKeyDownArgs<R, SR>, event: CellKeyboardEvent) => void">
+  A function called when keydown event is triggered on a cell. This event can be used to customize cell navigation and editing behavior.
+
+  **Examples:**
+
+  Prevent editing on `Enter`:
+
+  ```tsx
+  function onCellKeyDown(args: CellKeyDownArgs<R, SR>, event: CellKeyboardEvent) {
+    if (args.mode === 'SELECT' && event.key === 'Enter') {
+      event.preventGridDefault();
+    }
+  }
+  ```
+
+  Prevent navigation on `Tab`:
+
+  ```tsx
+  function onCellKeyDown(args: CellKeyDownArgs<R, SR>, event: CellKeyboardEvent) {
+    if (args.mode === 'SELECT' && event.key === 'Tab') {
+      event.preventGridDefault();
+    }
+  }
+  ```
+</ParamField>
+
+<ParamField path="onCellCopy" type="(args: CellCopyArgs<R, SR>, event: CellClipboardEvent) => void">
+  Callback triggered when a cell's content is copied.
+</ParamField>
+
+<ParamField path="onCellPaste" type="(args: CellPasteArgs<R, SR>, event: CellClipboardEvent) => R">
+  Callback triggered when content is pasted into a cell.
+
+  Return the updated row; the grid will call `onRowsChange` with it.
+</ParamField>
+
+<ParamField path="onSelectedCellChange" type="(args: CellSelectArgs<R, SR>) => void">
+  Triggered when the selected cell is changed.
+
+  Arguments:
+  - `args.rowIdx`: `number` - row index
+  - `args.row`: `R | undefined` - row object of the currently selected cell
+  - `args.column`: `CalculatedColumn<TRow, TSummaryRow>` - column object of the currently selected cell
+</ParamField>
+
+<ParamField path="onScroll" type="(event: React.UIEvent<HTMLDivElement>) => void">
+  Callback triggered when the grid is scrolled.
+</ParamField>
+
+<ParamField path="onColumnResize" type="(column: CalculatedColumn<R, SR>, width: number) => void">
+  Callback triggered when column is resized.
+</ParamField>
+
+<ParamField path="onColumnsReorder" type="(sourceColumnKey: string, targetColumnKey: string) => void">
+  Callback triggered when columns are reordered.
+</ParamField>
+
+<ParamField path="onFill" type="(event: FillEvent<R>) => R">
+  Callback triggered during drag-fill operations. Return the updated row.
+</ParamField>
+
+### Customization
+
+<ParamField path="enableVirtualization" type="boolean" default="true">
+  This prop can be used to disable virtualization.
+</ParamField>
+
+<ParamField path="renderers" type="Renderers<R, SR>">
+  Custom renderers for cells, rows, and other components.
+
+  ```tsx
+  import { DataGrid, type Renderers } from 'react-data-grid';
+
+  const customRenderers: Renderers<Row, SummaryRow> = {
+    renderRow(key, props) {
+      return <CustomRow key={key} {...props} />;
+    },
+    renderCell(key, props) {
+      return <CustomCell key={key} {...props} />;
+    },
+    renderCheckbox(props) {
+      return <CustomCheckbox {...props} />;
+    },
+    renderSortStatus(props) {
+      return <CustomSortIcon {...props} />;
+    },
+    noRowsFallback: <div>No data available</div>
+  };
+
+  <DataGrid columns={columns} rows={rows} renderers={customRenderers} />
+  ```
+
+  The default `<Row />` component can be wrapped via the `renderRow` prop:
+
+  ```tsx
+  import { DataGrid, Row, type RenderRowProps } from 'react-data-grid';
+
+  function myRowRenderer(key: React.Key, props: RenderRowProps<MyRow>) {
+    return (
+      <MyContext key={key} value={123}>
+        <Row {...props} />
+      </MyContext>
+    );
+  }
+
+  <DataGrid renderers={{ renderRow: myRowRenderer }} columns={columns} rows={rows} />
+  ```
+</ParamField>
+
+<ParamField path="rowClass" type="(row: R, rowIdx: number) => string | undefined">
+  Function to apply custom class names to rows.
+
+  ```tsx
+  function rowClass(row: Row, rowIdx: number) {
+    return rowIdx % 2 === 0 ? 'even' : 'odd';
+  }
+
+  <DataGrid columns={columns} rows={rows} rowClass={rowClass} />
+  ```
+
+  <Warning>
+    **Performance:** Define this function outside your component or memoize it with `useCallback` to avoid re-rendering all rows on every render.
+  </Warning>
+</ParamField>
+
+<ParamField path="headerRowClass" type="string">
+  Custom class name for the header row.
+
+  ```tsx
+  <DataGrid columns={columns} rows={rows} headerRowClass="sticky-header" />
+  ```
+</ParamField>
+
+<ParamField path="direction" type="'ltr' | 'rtl'" default="'ltr'">
+  This property sets the text direction of the grid. Setting `direction` to `'rtl'` has the following effects:
+  - Columns flow from right to left
+  - Frozen columns are pinned on the right
+  - Column resize cursor is shown on the left edge of the column
+  - Scrollbar is moved to the left
+</ParamField>
+
+### Styling
+
+<ParamField path="className" type="string">
+  Custom class name for the grid.
+</ParamField>
+
+<ParamField path="style" type="CSSProperties">
+  Custom styles for the grid.
+
+  ```tsx
+  <DataGrid
+    columns={columns}
+    rows={rows}
+    className="my-grid custom-theme"
+    style={{ width: 800, height: 600 }}
+  />
+  ```
+</ParamField>
+
+### Accessibility
+
+<ParamField path="role" type="string" default="'grid'">
+  ARIA role for the grid container.
+</ParamField>
+
+<ParamField path="aria-label" type="string">
+  The label of the grid. We recommend providing a label using `aria-label` or `aria-labelledby`.
+</ParamField>
+
+<ParamField path="aria-labelledby" type="string">
+  The id of the element containing a label for the grid. We recommend providing a label using `aria-label` or `aria-labelledby`.
+</ParamField>
+
+<ParamField path="aria-rowcount" type="number">
+  Total number of rows for assistive technologies.
+</ParamField>
+
+<ParamField path="aria-description" type="string">
+  Description of the grid.
+</ParamField>
+
+<ParamField path="aria-describedby" type="string">
+  If the grid has a caption or description, `aria-describedby` can be set on the grid element with a value referring to the element containing the description.
+</ParamField>
+
+### Testing
+
+<ParamField path="data-testid" type="string">
+  This prop can be used to add a testid for testing. We recommend querying the grid by its `role` and `name`.
+
+  ```tsx
+  function MyGrid() {
+    return <DataGrid aria-label="my-grid" columns={columns} rows={rows} />;
+  }
+
+  test('grid', async () => {
+    await page.render(<MyGrid />);
+    const grid = page.getByRole('grid', { name: 'my-grid' });
+  });
+  ```
+</ParamField>
+
+<ParamField path="data-cy" type="string">
+  Optional attribute to help with Cypress (or similar) selectors.
+</ParamField>
+
+## Generics
+
+- `R` - Row type
+- `SR` - Summary row type (default: `unknown`)
+- `K` - Row key type (default: `Key`)
+
+```tsx
+interface Row {
+  id: number;
+  title: string;
+}
+
+interface SummaryRow {
+  total: number;
+}
+
+function MyGrid() {
+  return <DataGrid<Row, SummaryRow, number> columns={columns} rows={rows} />;
+}
+```

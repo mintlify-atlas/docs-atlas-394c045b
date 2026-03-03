@@ -1,0 +1,121 @@
+---
+title: renderHeaderCell
+description: Default header cell renderer with sort indicators for sortable columns
+---
+
+## Overview
+
+The `renderHeaderCell` function is the default header cell renderer that displays sortable columns with sort indicators. It renders the column name and, for sortable columns, includes visual indicators for sort direction and priority.
+
+## Signature
+
+```tsx
+function renderHeaderCell<R, SR>(
+  props: RenderHeaderCellProps<R, SR>
+): React.ReactNode
+```
+
+## Parameters
+
+<ParamField path="props" type="RenderHeaderCellProps<R, SR>" required>
+  The header cell renderer props.
+</ParamField>
+
+### RenderHeaderCellProps
+
+<ParamField path="props.column" type="CalculatedColumn<R, SR>" required>
+  The column object containing configuration like `name`, `sortable`, etc.
+</ParamField>
+
+<ParamField path="props.sortDirection" type="'ASC' | 'DESC' | undefined">
+  The current sort direction for this column, if sorted.
+</ParamField>
+
+<ParamField path="props.priority" type="number | undefined">
+  The sort priority number for multi-column sorting (1, 2, 3, etc.).
+</ParamField>
+
+<ParamField path="props.tabIndex" type="number" required>
+  The tab index for keyboard navigation.
+</ParamField>
+
+## Return Value
+
+<ResponseField name="return" type="React.ReactNode">
+  The rendered header cell content. For non-sortable columns, returns the column name directly. For sortable columns, returns the name wrapped with sort indicators.
+</ResponseField>
+
+## Usage
+
+You can use this function as a custom header cell renderer for individual columns:
+
+```tsx
+import { renderHeaderCell, type Column } from 'react-data-grid';
+
+const columns: readonly Column<Row>[] = [
+  {
+    key: 'name',
+    name: 'Name',
+    sortable: true,
+    renderHeaderCell
+  }
+];
+```
+
+## Behavior
+
+- **Non-sortable columns**: Returns the column name as-is
+- **Sortable columns**: Wraps the column name with sort indicators showing:
+  - Sort direction arrow (up for ASC, down for DESC)
+  - Sort priority number (for multi-column sorting)
+
+## Example
+
+Using the default header cell renderer with sorting:
+
+```tsx
+import 'react-data-grid/lib/styles.css';
+import { DataGrid, renderHeaderCell, type Column } from 'react-data-grid';
+import { useState } from 'react';
+
+interface Row {
+  id: number;
+  title: string;
+  count: number;
+}
+
+const columns: readonly Column<Row>[] = [
+  { key: 'id', name: 'ID' },
+  {
+    key: 'title',
+    name: 'Title',
+    sortable: true,
+    renderHeaderCell
+  },
+  {
+    key: 'count',
+    name: 'Count',
+    sortable: true,
+    renderHeaderCell
+  }
+];
+
+function App() {
+  const [sortColumns, setSortColumns] = useState([]);
+
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      sortColumns={sortColumns}
+      onSortColumnsChange={setSortColumns}
+    />
+  );
+}
+```
+
+## Related
+
+- [renderSortIcon](/api/render-sort-icon) - Sort direction arrow renderer
+- [renderSortPriority](/api/render-sort-icon#rendersortpriority) - Sort priority number renderer
+- [Column.sortable](/api/types/column#sortable) - Column sortable configuration

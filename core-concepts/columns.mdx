@@ -1,0 +1,298 @@
+---
+title: Column Configuration
+description: Configure columns with types, widths, and custom renderers
+---
+
+## Overview
+
+Columns define the structure and behavior of your data grid. Each column configuration controls how data is displayed, edited, and interacted with.
+
+## Basic Column Structure
+
+Every column requires two essential properties:
+
+```tsx
+import { DataGrid, type Column } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  title: string;
+}
+
+const columns: readonly Column<Row>[] = [
+  { key: 'id', name: 'ID' },
+  { key: 'title', name: 'Title' }
+];
+```
+
+## Column Properties
+
+### Required Properties
+
+<ParamField path="key" type="string" required>
+  A unique key to distinguish each column. Used to access the row data.
+</ParamField>
+
+<ParamField path="name" type="string | ReactElement" required>
+  The name of the column. Displayed in the header cell by default.
+</ParamField>
+
+### Width Configuration
+
+<ParamField path="width" type="number | string" default="auto">
+  Column width. Can be pixels, percentage, or CSS grid values.
+  
+  ```tsx
+  // Fixed width in pixels
+  { key: 'id', name: 'ID', width: 80 }
+  
+  // Percentage width
+  { key: 'name', name: 'Name', width: '30%' }
+  
+  // Auto-sized to content
+  { key: 'description', name: 'Description', width: 'max-content' }
+  ```
+</ParamField>
+
+<ParamField path="minWidth" type="number" default={50}>
+  Minimum column width in pixels.
+</ParamField>
+
+<ParamField path="maxWidth" type="number">
+  Maximum column width in pixels.
+</ParamField>
+
+<ParamField path="resizable" type="boolean" default={false}>
+  Enable column resizing by dragging the column edge.
+  
+  ```tsx
+  const columns: Column<Row>[] = [
+    {
+      key: 'name',
+      name: 'Name',
+      resizable: true,
+      minWidth: 100,
+      maxWidth: 400
+    }
+  ];
+  ```
+</ParamField>
+
+### Behavior Properties
+
+<ParamField path="frozen" type="boolean" default={false}>
+  Pin the column to the left side (or right in RTL mode) during horizontal scrolling.
+  
+  ```tsx
+  const columns: Column<Row>[] = [
+    { key: 'id', name: 'ID', frozen: true, width: 80 },
+    { key: 'name', name: 'Name', frozen: true },
+    { key: 'email', name: 'Email' }
+  ];
+  ```
+</ParamField>
+
+<ParamField path="sortable" type="boolean" default={false}>
+  Enable sorting for this column. Click the header to toggle sort direction.
+</ParamField>
+
+<ParamField path="draggable" type="boolean" default={false}>
+  Enable column reordering by dragging the header.
+</ParamField>
+
+<ParamField path="sortDescendingFirst" type="boolean" default={false}>
+  Start with descending order on first sort instead of ascending.
+</ParamField>
+
+### Styling Properties
+
+<ParamField path="cellClass" type="string | ((row: TRow) => string | null)">
+  CSS class name(s) for cells. Can be static or dynamic based on row data.
+  
+  ```tsx
+  const columns: Column<Row>[] = [
+    {
+      key: 'status',
+      name: 'Status',
+      cellClass: (row) => `status-${row.status}`
+    },
+    {
+      key: 'price',
+      name: 'Price',
+      cellClass: 'text-right'
+    }
+  ];
+  ```
+</ParamField>
+
+<ParamField path="headerCellClass" type="string">
+  CSS class name(s) for the header cell.
+</ParamField>
+
+<ParamField path="summaryCellClass" type="string | ((row: TSummaryRow) => string | null)">
+  CSS class name(s) for summary row cells.
+</ParamField>
+
+### Custom Renderers
+
+<ParamField path="renderCell" type="(props: RenderCellProps<TRow, TSummaryRow>) => ReactNode">
+  Custom function to render cell content.
+  
+  ```tsx
+  import type { RenderCellProps } from 'react-data-grid';
+  
+  const columns: Column<Row>[] = [
+    {
+      key: 'avatar',
+      name: 'Avatar',
+      renderCell({ row }: RenderCellProps<Row>) {
+        return <img src={row.avatarUrl} alt={row.name} />;
+      }
+    }
+  ];
+  ```
+</ParamField>
+
+<ParamField path="renderHeaderCell" type="(props: RenderHeaderCellProps<TRow, TSummaryRow>) => ReactNode">
+  Custom function to render the header cell content.
+  
+  ```tsx
+  import { renderHeaderCell, type Column } from 'react-data-grid';
+  
+  const columns: Column<Row>[] = [
+    {
+      key: 'name',
+      name: 'Name',
+      sortable: true,
+      renderHeaderCell
+    }
+  ];
+  ```
+</ParamField>
+
+<ParamField path="renderSummaryCell" type="(props: RenderSummaryCellProps<TSummaryRow, TRow>) => ReactNode">
+  Custom function to render summary row cells.
+</ParamField>
+
+<ParamField path="renderGroupCell" type="(props: RenderGroupCellProps<TRow, TSummaryRow>) => ReactNode">
+  Custom function to render group cells when using `TreeDataGrid`.
+</ParamField>
+
+### Column Spanning
+
+<ParamField path="colSpan" type="(args: ColSpanArgs<TRow, TSummaryRow>) => number | undefined">
+  Function to determine how many columns this cell should span.
+  
+  ```tsx
+  const columns: Column<Row>[] = [
+    {
+      key: 'title',
+      name: 'Title',
+      colSpan(args) {
+        if (args.type === 'ROW' && args.row.isFullWidth) {
+          return 5; // Span 5 columns
+        }
+        return undefined;
+      }
+    }
+  ];
+  ```
+</ParamField>
+
+## Column Groups
+
+Group multiple columns under a common header:
+
+```tsx
+import type { ColumnOrColumnGroup } from 'react-data-grid';
+
+const columns: readonly ColumnOrColumnGroup<Row>[] = [
+  {
+    name: 'Personal Info',
+    children: [
+      { key: 'firstName', name: 'First Name' },
+      { key: 'lastName', name: 'Last Name' }
+    ]
+  },
+  {
+    name: 'Contact',
+    children: [
+      { key: 'email', name: 'Email' },
+      { key: 'phone', name: 'Phone' }
+    ]
+  }
+];
+```
+
+<Note>
+  Column groups are not supported in `TreeDataGrid`. Use only with `DataGrid`.
+</Note>
+
+## Default Column Options
+
+Apply default settings to all columns:
+
+```tsx
+<DataGrid
+  columns={columns}
+  rows={rows}
+  defaultColumnOptions={{
+    minWidth: 100,
+    resizable: true,
+    sortable: true,
+    draggable: true
+  }}
+/>
+```
+
+## Performance Tips
+
+<Warning>
+  Passing a new `columns` array triggers a full grid re-render. Always memoize with `useMemo` or define outside the component.
+</Warning>
+
+```tsx
+import { useMemo } from 'react';
+import { DataGrid, type Column } from 'react-data-grid';
+
+function MyGrid() {
+  const columns = useMemo<readonly Column<Row>[]>(() => [
+    { key: 'id', name: 'ID' },
+    { key: 'title', name: 'Title' }
+  ], []);
+
+  return <DataGrid columns={columns} rows={rows} />;
+}
+```
+
+## TypeScript Types
+
+```typescript
+interface Column<TRow, TSummaryRow = unknown> {
+  readonly name: string | ReactElement;
+  readonly key: string;
+  readonly width?: Maybe<number | string>;
+  readonly minWidth?: Maybe<number>;
+  readonly maxWidth?: Maybe<number>;
+  readonly cellClass?: Maybe<string | ((row: TRow) => Maybe<string>)>;
+  readonly headerCellClass?: Maybe<string>;
+  readonly summaryCellClass?: Maybe<string | ((row: TSummaryRow) => Maybe<string>)>;
+  readonly renderCell?: Maybe<(props: RenderCellProps<TRow, TSummaryRow>) => ReactNode>;
+  readonly renderHeaderCell?: Maybe<(props: RenderHeaderCellProps<TRow, TSummaryRow>) => ReactNode>;
+  readonly renderSummaryCell?: Maybe<(props: RenderSummaryCellProps<TSummaryRow, TRow>) => ReactNode>;
+  readonly renderGroupCell?: Maybe<(props: RenderGroupCellProps<TRow, TSummaryRow>) => ReactNode>;
+  readonly renderEditCell?: Maybe<(props: RenderEditCellProps<TRow, TSummaryRow>) => ReactNode>;
+  readonly editable?: Maybe<boolean | ((row: TRow) => boolean)>;
+  readonly colSpan?: Maybe<(args: ColSpanArgs<TRow, TSummaryRow>) => Maybe<number>>;
+  readonly frozen?: Maybe<boolean>;
+  readonly resizable?: Maybe<boolean>;
+  readonly sortable?: Maybe<boolean>;
+  readonly draggable?: Maybe<boolean>;
+  readonly sortDescendingFirst?: Maybe<boolean>;
+  readonly editorOptions?: Maybe<{
+    readonly displayCellContent?: Maybe<boolean>;
+    readonly commitOnOutsideClick?: Maybe<boolean>;
+    readonly closeOnExternalRowChange?: Maybe<boolean>;
+  }>;
+}
+```

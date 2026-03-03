@@ -1,0 +1,454 @@
+---
+title: RTL Support
+description: Right-to-left language support in React Data Grid
+---
+
+## Overview
+
+React Data Grid supports right-to-left (RTL) languages like Arabic, Hebrew, Persian, and Urdu. The grid automatically adapts its layout and behavior for RTL text direction.
+
+## Enabling RTL
+
+Set the `direction` prop to `'rtl'`:
+
+```tsx
+import { DataGrid } from 'react-data-grid';
+
+function MyGrid() {
+  return <DataGrid columns={columns} rows={rows} direction="rtl" />;
+}
+```
+
+<Note>
+  The default direction is `'ltr'` (left-to-right).
+</Note>
+
+## RTL Behavior
+
+When `direction="rtl"` is set, the following changes occur:
+
+### Column Flow
+
+Columns flow from right to left:
+
+```tsx
+const columns: readonly Column<Row>[] = [
+  { key: 'id', name: 'معرف' }, // Rightmost column
+  { key: 'name', name: 'الاسم' },
+  { key: 'email', name: 'البريد الإلكتروني' } // Leftmost column
+];
+
+<DataGrid columns={columns} rows={rows} direction="rtl" />;
+```
+
+### Frozen Columns
+
+Frozen columns are pinned on the right side:
+
+```tsx
+const columns: readonly Column<Row>[] = [
+  {
+    key: 'id',
+    name: 'معرف',
+    frozen: true // Pinned to the right in RTL
+  },
+  { key: 'name', name: 'الاسم' },
+  { key: 'email', name: 'البريد الإلكتروني' }
+];
+
+<DataGrid columns={columns} rows={rows} direction="rtl" />;
+```
+
+<Tip>
+  In LTR mode, frozen columns are pinned on the left. In RTL mode, they're pinned on the right.
+</Tip>
+
+### Column Resize Handle
+
+The resize handle appears on the left edge of columns (instead of right):
+
+```tsx
+const columns: readonly Column<Row>[] = [
+  {
+    key: 'name',
+    name: 'الاسم',
+    resizable: true // Handle on left edge in RTL
+  }
+];
+```
+
+### Scrollbar Position
+
+The horizontal scrollbar is positioned on the left side:
+
+```tsx
+<DataGrid columns={columns} rows={rows} direction="rtl" />
+```
+
+## Keyboard Navigation
+
+Arrow key navigation adapts to RTL:
+
+- **Arrow Left** → Moves to the cell on the right
+- **Arrow Right** → Moves to the cell on the left
+
+```tsx
+import { DataGrid } from 'react-data-grid';
+
+function MyGrid() {
+  return (
+    <DataGrid
+      aria-label="قائمة المنتجات"
+      columns={columns}
+      rows={rows}
+      direction="rtl"
+    />
+  );
+}
+```
+
+<Note>
+  The grid automatically handles left/right key mapping. You don't need to modify `onCellKeyDown` handlers.
+</Note>
+
+## Dynamic Direction
+
+Switch between LTR and RTL dynamically:
+
+```tsx
+import { useState } from 'react';
+import { DataGrid, type Direction } from 'react-data-grid';
+
+function MyGrid() {
+  const [direction, setDirection] = useState<Direction>('ltr');
+
+  return (
+    <>
+      <button onClick={() => setDirection('ltr')}>LTR</button>
+      <button onClick={() => setDirection('rtl')}>RTL</button>
+
+      <DataGrid
+        columns={columns}
+        rows={rows}
+        direction={direction}
+      />
+    </>
+  );
+}
+```
+
+## Internationalization
+
+Combine with i18n libraries:
+
+```tsx
+import { useTranslation } from 'react-i18next';
+import { DataGrid, type Column } from 'react-data-grid';
+
+function MyGrid() {
+  const { t, i18n } = useTranslation();
+  const direction = i18n.dir(); // Returns 'ltr' or 'rtl'
+
+  const columns: readonly Column<Row>[] = [
+    { key: 'id', name: t('columns.id') },
+    { key: 'name', name: t('columns.name') },
+    { key: 'email', name: t('columns.email') }
+  ];
+
+  return (
+    <DataGrid
+      aria-label={t('grid.products')}
+      columns={columns}
+      rows={rows}
+      direction={direction}
+    />
+  );
+}
+```
+
+### Example with react-i18next
+
+```tsx
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+
+i18n.use(initReactI18next).init({
+  resources: {
+    en: {
+      translation: {
+        'columns.id': 'ID',
+        'columns.name': 'Name',
+        'columns.email': 'Email'
+      }
+    },
+    ar: {
+      translation: {
+        'columns.id': 'معرف',
+        'columns.name': 'الاسم',
+        'columns.email': 'البريد الإلكتروني'
+      }
+    }
+  },
+  lng: 'en',
+  fallbackLng: 'en'
+});
+```
+
+## Document Direction
+
+For full RTL support, set the document direction:
+
+```tsx
+import { useEffect } from 'react';
+import { DataGrid } from 'react-data-grid';
+
+function MyApp() {
+  const direction = 'rtl';
+
+  useEffect(() => {
+    document.documentElement.dir = direction;
+    document.documentElement.lang = 'ar'; // Set language
+  }, [direction]);
+
+  return <DataGrid columns={columns} rows={rows} direction={direction} />;
+}
+```
+
+<Warning>
+  Setting `document.documentElement.dir` affects the entire page. Only do this if your entire application is RTL.
+</Warning>
+
+## CSS Considerations
+
+### Logical Properties
+
+The grid uses CSS logical properties internally, which automatically adapt to text direction:
+
+```css
+/* Instead of left/right */
+margin-left: 10px;
+margin-right: 5px;
+
+/* Use inline-start/inline-end */
+margin-inline-start: 10px;
+margin-inline-end: 5px;
+```
+
+### Custom Styles
+
+When adding custom styles, use logical properties for RTL support:
+
+```tsx
+import { DataGrid } from 'react-data-grid';
+
+const columns: readonly Column<Row>[] = [
+  {
+    key: 'name',
+    name: 'الاسم',
+    renderCell({ row }) {
+      return (
+        <div
+          style={{
+            paddingInlineStart: '10px', // ✅ Adapts to RTL
+            paddingInlineEnd: '5px',
+            // paddingLeft: '10px', // ❌ Fixed direction
+          }}
+        >
+          {row.name}
+        </div>
+      );
+    }
+  }
+];
+```
+
+<Tip>
+  Use `inline-start`/`inline-end` instead of `left`/`right` for direction-aware layouts.
+</Tip>
+
+## Common Patterns
+
+### Language Selector
+
+```tsx
+import { useState } from 'react';
+import { DataGrid, type Direction } from 'react-data-grid';
+
+const languages = {
+  en: { name: 'English', direction: 'ltr' as Direction },
+  ar: { name: 'العربية', direction: 'rtl' as Direction },
+  he: { name: 'עברית', direction: 'rtl' as Direction }
+};
+
+function MyGrid() {
+  const [lang, setLang] = useState<keyof typeof languages>('en');
+  const { direction } = languages[lang];
+
+  return (
+    <>
+      <select value={lang} onChange={(e) => setLang(e.target.value as keyof typeof languages)}>
+        {Object.entries(languages).map(([code, { name }]) => (
+          <option key={code} value={code}>
+            {name}
+          </option>
+        ))}
+      </select>
+
+      <DataGrid
+        columns={getLocalizedColumns(lang)}
+        rows={rows}
+        direction={direction}
+      />
+    </>
+  );
+}
+```
+
+### Detecting User Preference
+
+```tsx
+import { useMemo } from 'react';
+import { DataGrid, type Direction } from 'react-data-grid';
+
+function MyGrid() {
+  const direction = useMemo((): Direction => {
+    const htmlDir = document.documentElement.dir;
+    if (htmlDir === 'rtl') return 'rtl';
+
+    // Detect from language
+    const lang = navigator.language;
+    const rtlLangs = ['ar', 'he', 'fa', 'ur'];
+    if (rtlLangs.some((rtl) => lang.startsWith(rtl))) {
+      return 'rtl';
+    }
+
+    return 'ltr';
+  }, []);
+
+  return <DataGrid columns={columns} rows={rows} direction={direction} />;
+}
+```
+
+## Testing RTL
+
+### Visual Testing
+
+```tsx
+import { render, screen } from '@testing-library/react';
+import { DataGrid } from 'react-data-grid';
+
+test('renders in RTL mode', () => {
+  render(
+    <DataGrid
+      aria-label="Products"
+      columns={columns}
+      rows={rows}
+      direction="rtl"
+    />
+  );
+
+  const grid = screen.getByRole('grid', { name: 'Products' });
+  expect(grid).toHaveAttribute('dir', 'rtl');
+});
+```
+
+### Browser Testing
+
+Test in different browsers:
+
+```tsx
+// Set browser to RTL mode for manual testing
+document.documentElement.dir = 'rtl';
+```
+
+## Browser Support
+
+RTL support works in all modern browsers:
+
+- Chrome 76+
+- Firefox 68+
+- Safari 12+
+- Edge 79+
+
+<Note>
+  The grid uses standard CSS logical properties with broad browser support.
+</Note>
+
+## Known Limitations
+
+Currently, there are no known RTL limitations. The grid fully supports RTL layouts.
+
+## Best Practices
+
+<Warning>
+  **For RTL support:**
+  - Always set the `direction` prop
+  - Use CSS logical properties in custom styles
+  - Test with actual RTL content
+  - Set `document.documentElement.dir` when appropriate
+  - Provide localized column names and labels
+</Warning>
+
+<Tip>
+  Use browser DevTools to toggle `dir="rtl"` on the document element for quick RTL testing.
+</Tip>
+
+## Example: Full RTL Implementation
+
+```tsx
+import { useState, useEffect } from 'react';
+import { DataGrid, type Column, type Direction } from 'react-data-grid';
+import 'react-data-grid/lib/styles.css';
+
+interface Row {
+  id: number;
+  name: string;
+  email: string;
+}
+
+const columnsEn: readonly Column<Row>[] = [
+  { key: 'id', name: 'ID', width: 80 },
+  { key: 'name', name: 'Name', resizable: true },
+  { key: 'email', name: 'Email', resizable: true }
+];
+
+const columnsAr: readonly Column<Row>[] = [
+  { key: 'id', name: 'معرف', width: 80 },
+  { key: 'name', name: 'الاسم', resizable: true },
+  { key: 'email', name: 'البريد الإلكتروني', resizable: true }
+];
+
+function MyGrid() {
+  const [language, setLanguage] = useState<'en' | 'ar'>('en');
+  const direction: Direction = language === 'ar' ? 'rtl' : 'ltr';
+  const columns = language === 'ar' ? columnsAr : columnsEn;
+
+  useEffect(() => {
+    document.documentElement.dir = direction;
+    document.documentElement.lang = language;
+  }, [direction, language]);
+
+  const rows: Row[] = [
+    { id: 1, name: 'أحمد محمد', email: 'ahmad@example.com' },
+    { id: 2, name: 'فاطمة علي', email: 'fatima@example.com' },
+    { id: 3, name: 'محمد حسن', email: 'mohamed@example.com' }
+  ];
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <button onClick={() => setLanguage('en')}>English</button>
+      <button onClick={() => setLanguage('ar')}>العربية</button>
+
+      <DataGrid
+        aria-label={language === 'ar' ? 'قائمة المستخدمين' : 'User list'}
+        columns={columns}
+        rows={rows}
+        direction={direction}
+        style={{ height: '400px' }}
+      />
+    </div>
+  );
+}
+
+export default MyGrid;
+```

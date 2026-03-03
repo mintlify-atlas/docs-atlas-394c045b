@@ -1,0 +1,123 @@
+---
+title: renderCheckbox
+description: Renders a checkbox input with proper styling and accessibility
+---
+
+## Overview
+
+The `renderCheckbox` function renders a checkbox input with proper styling, accessibility attributes, and support for indeterminate state. It's used by the `SelectColumn` for row selection.
+
+## Signature
+
+```tsx
+function renderCheckbox(props: RenderCheckboxProps): React.ReactElement
+```
+
+## Parameters
+
+<ParamField path="props" type="RenderCheckboxProps" required>
+  The checkbox renderer props.
+</ParamField>
+
+### RenderCheckboxProps
+
+<ParamField path="checked" type="boolean" required>
+  Whether the checkbox is checked.
+</ParamField>
+
+<ParamField path="indeterminate" type="boolean">
+  Whether the checkbox is in an indeterminate state (partially checked).
+</ParamField>
+
+<ParamField path="disabled" type="boolean">
+  Whether the checkbox is disabled.
+</ParamField>
+
+<ParamField path="onChange" type="(checked: boolean, shift: boolean) => void" required>
+  Callback when the checkbox state changes. Receives the new checked state and whether shift was pressed.
+</ParamField>
+
+<ParamField path="tabIndex" type="number" required>
+  The tab index for keyboard navigation.
+</ParamField>
+
+<ParamField path="aria-label" type="string">
+  Accessible label for the checkbox.
+</ParamField>
+
+<ParamField path="aria-labelledby" type="string">
+  ID of the element that labels the checkbox.
+</ParamField>
+
+## Return Value
+
+<ResponseField name="return" type="React.ReactElement">
+  A styled checkbox input element with proper accessibility attributes.
+</ResponseField>
+
+## Usage
+
+You can customize the default checkbox renderer globally:
+
+```tsx
+import { DataGrid, renderCheckbox } from 'react-data-grid';
+
+<DataGrid
+  renderers={{
+    renderCheckbox: (props) => renderCheckbox({ ...props, 'aria-label': 'Select row' })
+  }}
+/>;
+```
+
+## Features
+
+- **Indeterminate state**: Supports the indeterminate state for "select all" checkboxes
+- **Shift-click support**: Detects shift key for range selection
+- **Accessibility**: Includes focus styles and ARIA attributes
+- **Styling**: Centered in cell with proper sizing (20×20px)
+- **Disabled state**: Shows disabled cursor when checkbox is disabled
+
+## Example
+
+Custom checkbox with additional styling:
+
+```tsx
+import { DataGrid, renderCheckbox, type RenderCheckboxProps } from 'react-data-grid';
+
+function CustomCheckbox(props: RenderCheckboxProps) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {renderCheckbox(props)}
+      {props.checked && <span>✓</span>}
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      renderers={{
+        renderCheckbox: CustomCheckbox
+      }}
+    />
+  );
+}
+```
+
+## Default Styling
+
+The checkbox includes these default styles:
+
+- Centered in the cell with `margin: auto`
+- Fixed size: 20×20 pixels
+- Focus outline: 2px solid with focus color
+- Cursor: pointer when enabled
+
+## Related
+
+- [SelectColumn](/api/select-column) - Pre-configured selection column
+- [useRowSelection](/api/use-row-selection) - Hook for row selection in cells
+- [useHeaderRowSelection](/api/use-header-row-selection) - Hook for header selection
+- [Renderers.renderCheckbox](/api/types/render-props#rendercheckbox) - Custom renderer configuration

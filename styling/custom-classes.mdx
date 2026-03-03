@@ -1,0 +1,428 @@
+---
+title: Custom Classes
+description: Apply custom CSS classes to rows and cells in React Data Grid
+---
+
+The DataGrid provides props to apply custom CSS classes to different parts of the grid, giving you fine-grained control over styling.
+
+## Grid-Level Classes
+
+Apply classes to the entire grid container:
+
+```tsx
+import { DataGrid } from 'react-data-grid';
+
+function MyGrid() {
+  return (
+    <DataGrid
+      className="my-grid custom-theme"
+      columns={columns}
+      rows={rows}
+    />
+  );
+}
+```
+
+```css
+.my-grid {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+```
+
+## Header Row Classes
+
+Customize the header row appearance using `headerRowClass`:
+
+```tsx
+<DataGrid
+  columns={columns}
+  rows={rows}
+  headerRowClass="sticky-header"
+/>
+```
+
+```css
+.sticky-header {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+```
+
+## Row Classes
+
+Apply custom classes to data rows using the `rowClass` prop. This accepts either a string or a function that returns a class name based on the row data.
+
+### Static Row Class
+
+```tsx
+<DataGrid
+  columns={columns}
+  rows={rows}
+  rowClass="custom-row"
+/>
+```
+
+### Dynamic Row Classes
+
+Use a function to apply classes conditionally:
+
+```tsx
+import { DataGrid } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  status: 'active' | 'inactive' | 'pending';
+  priority: 'high' | 'medium' | 'low';
+}
+
+function rowClass(row: Row, rowIdx: number) {
+  // Apply zebra striping
+  const stripe = rowIdx % 2 === 0 ? 'even' : 'odd';
+  
+  // Apply status-based class
+  return `${stripe} status-${row.status}`;
+}
+
+function MyGrid() {
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      rowClass={rowClass}
+    />
+  );
+}
+```
+
+```css
+.even {
+  background-color: light-dark(#f9f9f9, #1a1a1a);
+}
+
+.status-active {
+  border-left: 3px solid green;
+}
+
+.status-inactive {
+  border-left: 3px solid gray;
+  opacity: 0.6;
+}
+
+.status-pending {
+  border-left: 3px solid orange;
+}
+```
+
+<Info>
+The `rowClass` function is called for every row during rendering. For optimal performance, define it outside your component or memoize it with `useCallback`.
+</Info>
+
+### Performance Optimization
+
+```tsx
+import { useCallback } from 'react';
+import { DataGrid } from 'react-data-grid';
+
+function MyGrid() {
+  const rowClass = useCallback((row: Row, rowIdx: number) => {
+    return row.priority === 'high' ? 'high-priority' : undefined;
+  }, []);
+
+  return <DataGrid columns={columns} rows={rows} rowClass={rowClass} />;
+}
+```
+
+## Cell Classes
+
+Apply classes to individual cells using the `cellClass` property in column definitions.
+
+### Static Cell Class
+
+```tsx
+import { type Column } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  price: number;
+  name: string;
+}
+
+const columns: Column<Row>[] = [
+  {
+    key: 'id',
+    name: 'ID',
+    cellClass: 'text-center'
+  },
+  {
+    key: 'price',
+    name: 'Price',
+    cellClass: 'text-right numeric'
+  },
+  {
+    key: 'name',
+    name: 'Name'
+  }
+];
+```
+
+```css
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums;
+  font-family: 'Roboto Mono', monospace;
+}
+```
+
+### Dynamic Cell Classes
+
+Use a function to apply classes based on cell value:
+
+```tsx
+const columns: Column<Row>[] = [
+  {
+    key: 'status',
+    name: 'Status',
+    cellClass: (row) => `status-${row.status}`
+  },
+  {
+    key: 'price',
+    name: 'Price',
+    cellClass: (row) => {
+      if (row.price > 1000) return 'high-value';
+      if (row.price < 100) return 'low-value';
+      return 'medium-value';
+    }
+  }
+];
+```
+
+```css
+.high-value {
+  color: green;
+  font-weight: 600;
+}
+
+.low-value {
+  color: gray;
+}
+
+.status-active {
+  color: green;
+}
+
+.status-inactive {
+  color: red;
+}
+```
+
+<Tip>
+Combine `cellClass` with custom cell renderers for maximum flexibility in cell styling and content.
+</Tip>
+
+## Header Cell Classes
+
+Customize header cells using `headerCellClass` in column definitions:
+
+```tsx
+const columns: Column<Row>[] = [
+  {
+    key: 'id',
+    name: 'ID',
+    headerCellClass: 'center-header'
+  },
+  {
+    key: 'actions',
+    name: 'Actions',
+    headerCellClass: 'sticky-actions'
+  }
+];
+```
+
+## Summary Cell Classes
+
+When using summary rows, apply classes to summary cells:
+
+```tsx
+const columns: Column<Row, SummaryRow>[] = [
+  {
+    key: 'total',
+    name: 'Total',
+    summaryCellClass: 'summary-total'
+  },
+  {
+    key: 'average',
+    name: 'Average',
+    summaryCellClass: (summaryRow) => {
+      return summaryRow.average > 100 ? 'high-average' : 'low-average';
+    }
+  }
+];
+```
+
+```css
+.summary-total {
+  font-weight: 700;
+  font-size: 1.1em;
+  background-color: light-dark(#e8f4f8, #1a2a3a);
+}
+```
+
+## Complete Example
+
+Here's a comprehensive example combining multiple styling techniques:
+
+```tsx
+import { useMemo, useCallback } from 'react';
+import { DataGrid, type Column } from 'react-data-grid';
+import 'react-data-grid/lib/styles.css';
+import './grid-styles.css';
+
+interface Row {
+  id: number;
+  name: string;
+  status: 'active' | 'inactive';
+  score: number;
+  priority: 'high' | 'medium' | 'low';
+}
+
+function StyledGrid() {
+  const columns: Column<Row>[] = useMemo(() => [
+    {
+      key: 'id',
+      name: 'ID',
+      headerCellClass: 'header-center',
+      cellClass: 'cell-center'
+    },
+    {
+      key: 'name',
+      name: 'Name',
+      cellClass: 'cell-bold'
+    },
+    {
+      key: 'status',
+      name: 'Status',
+      cellClass: (row) => `status-badge status-${row.status}`
+    },
+    {
+      key: 'score',
+      name: 'Score',
+      headerCellClass: 'header-right',
+      cellClass: (row) => {
+        const classes = ['cell-right'];
+        if (row.score >= 80) classes.push('score-high');
+        else if (row.score >= 60) classes.push('score-medium');
+        else classes.push('score-low');
+        return classes.join(' ');
+      }
+    }
+  ], []);
+
+  const rowClass = useCallback((row: Row, rowIdx: number) => {
+    const classes = [];
+    if (rowIdx % 2 === 0) classes.push('row-even');
+    if (row.priority === 'high') classes.push('priority-high');
+    return classes.join(' ');
+  }, []);
+
+  return (
+    <DataGrid
+      className="styled-grid"
+      headerRowClass="custom-header"
+      columns={columns}
+      rows={rows}
+      rowClass={rowClass}
+    />
+  );
+}
+```
+
+```css
+/* grid-styles.css */
+.styled-grid {
+  --rdg-font-size: 14px;
+  border: 1px solid light-dark(#e0e0e0, #333);
+  border-radius: 8px;
+}
+
+.custom-header {
+  font-weight: 600;
+  background-color: light-dark(#f5f5f5, #2a2a2a);
+}
+
+.header-center {
+  text-align: center;
+}
+
+.header-right {
+  text-align: right;
+}
+
+.cell-center {
+  text-align: center;
+  justify-content: center;
+}
+
+.cell-right {
+  text-align: right;
+  justify-content: flex-end;
+}
+
+.cell-bold {
+  font-weight: 500;
+}
+
+.row-even {
+  background-color: light-dark(#fafafa, #1a1a1a);
+}
+
+.priority-high {
+  border-left: 3px solid #f44336;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-badge::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-active::before {
+  background-color: #4caf50;
+}
+
+.status-inactive::before {
+  background-color: #9e9e9e;
+}
+
+.score-high {
+  color: #4caf50;
+  font-weight: 600;
+}
+
+.score-medium {
+  color: #ff9800;
+}
+
+.score-low {
+  color: #f44336;
+}
+```
+
+<Info>
+When combining multiple class names, return them as a space-separated string or join an array of classes.
+</Info>

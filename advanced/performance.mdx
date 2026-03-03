@@ -1,0 +1,452 @@
+---
+title: Performance Optimization
+description: Tips and best practices for optimizing React Data Grid performance
+---
+
+## Overview
+
+React Data Grid is built for performance with row and column virtualization. This page covers optimization strategies for handling large datasets efficiently.
+
+## Virtualization
+
+### Row Virtualization
+
+Only visible rows are rendered in the DOM. Rows outside the viewport are not rendered until scrolled into view.
+
+```tsx
+import { DataGrid } from 'react-data-grid';
+
+function MyGrid() {
+  // With 10,000 rows, only ~20-30 are rendered at once
+  return <DataGrid columns={columns} rows={largeRowArray} />;
+}
+```
+
+<Note>
+  Virtualization is enabled by default. Only disable it for small grids where you need all rows in the DOM.
+</Note>
+
+### Disabling Virtualization
+
+For small datasets where you need all rows rendered:
+
+```tsx
+<DataGrid
+  columns={columns}
+  rows={rows}
+  enableVirtualization={false}
+/>
+```
+
+<Warning>
+  Disabling virtualization with large datasets (1000+ rows) will cause performance issues and slow initial renders.
+</Warning>
+
+## Columns Array Optimization
+
+The `columns` prop must be stable to prevent re-renders:
+
+```tsx
+import { useMemo } from 'react';
+import { DataGrid, type Column } from 'react-data-grid';
+
+// ✅ Good: Define outside component
+const columns: readonly Column<Row>[] = [
+  { key: 'id', name: 'ID' },
+  { key: 'title', name: 'Title' }
+];
+
+function MyGrid() {
+  return <DataGrid columns={columns} rows={rows} />;
+}
+
+// ✅ Good: Memoize if computed
+function MyGrid() {
+  const columns = useMemo(
+    () => [
+      { key: 'id', name: 'ID' },
+      { key: 'title', name: 'Title' }
+    ],
+    []
+  );
+
+  return <DataGrid columns={columns} rows={rows} />;
+}
+
+// ❌ Bad: Creates new array on every render
+function MyGrid() {
+  return (
+    <DataGrid
+      columns={[
+        { key: 'id', name: 'ID' },
+        { key: 'title', name: 'Title' }
+      ]}
+      rows={rows}
+    />
+  );
+}
+```
+
+<Warning>
+  Passing a new `columns` array triggers re-renders and recalculation for the entire grid.
+</Warning>
+
+## Rows Array Optimization
+
+### Individual Row Updates
+
+Row components are memoized. Only changed rows re-render:
+
+```tsx
+const [rows, setRows] = useState(initialRows);
+
+// ✅ Good: Only changed row is re-rendered
+function updateRow(targetIdx: number, updates: Partial<Row>) {
+  setRows(rows.map((row, idx) => (idx === targetIdx ? { ...row, ...updates } : row)));
+}
+
+// ❌ Avoid: Creates new references for all rows
+function updateRow(targetIdx: number, updates: Partial<Row>) {
+  setRows(rows.map((row) => ({ ...row })));
+}
+```
+
+### Array Reference Changes
+
+Changing the array reference triggers viewport recalculations:
+
+```tsx
+// ✅ Good: New array, but unchanged rows reuse references
+setRows(rows.map((row, idx) => (idx === targetIdx ? updatedRow : row)));
+
+// ❌ Expensive: Forces all visible rows to re-render
+setRows([...rows]);
+```
+
+<Tip>
+  Create a new array but reuse unchanged row objects for optimal performance.
+</Tip>
+
+## Row Key Getter
+
+Provide `rowKeyGetter` for optimal performance:
+
+```tsx
+import { DataGrid } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  name: string;
+}
+
+function rowKeyGetter(row: Row) {
+  return row.id;
+}
+
+function MyGrid() {
+  return <DataGrid columns={columns} rows={rows} rowKeyGetter={rowKeyGetter} />;
+}
+```
+
+<Note>
+  The returned value is used for the React `key` prop, enabling efficient row reconciliation.
+</Note>
+
+### Memoization
+
+```tsx
+import { useCallback } from 'react';
+
+// ✅ Good: Define outside component
+function rowKeyGetter(row: Row) {
+  return row.id;
+}
+
+// ✅ Good: Memoize if defined inside
+function MyGrid() {
+  const rowKeyGetter = useCallback((row: Row) => row.id, []);
+  return <DataGrid columns={columns} rows={rows} rowKeyGetter={rowKeyGetter} />;
+}
+```
+
+## Dynamic Row Heights
+
+Dynamic row heights can impact performance with large datasets:
+
+```tsx
+import { DataGrid } from 'react-data-grid';
+
+// ✅ Good: Static height
+<DataGrid columns={columns} rows={rows} rowHeight={35} />
+
+// ⚠️ Use with caution: Dynamic heights
+function getRowHeight(row: Row) {
+  return row.isExpanded ? 100 : 35;
+}
+
+<DataGrid columns={columns} rows={rows} rowHeight={getRowHeight} />
+```
+
+<Warning>
+  With dynamic heights, all row heights are calculated upfront. For 1000+ rows, use a static function or memoize the `rowHeight` function to prevent recalculation on every render.
+</Warning>
+
+### Optimization Strategy
+
+```tsx
+import { useMemo } from 'react';
+
+function MyGrid() {
+  // ✅ Good: Stable function reference
+  const rowHeight = useMemo(
+    () => (row: Row) => (row.isExpanded ? 100 : 35),
+    []
+  );
+
+  return <DataGrid columns={columns} rows={rows} rowHeight={rowHeight} />;
+}
+```
+
+## Event Handler Optimization
+
+Stabilize event handler references:
+
+```tsx
+import { useCallback } from 'react';
+import { DataGrid } from 'react-data-grid';
+
+function MyGrid() {
+  // ❌ Bad: New function on every render
+  const handleRowsChange = (rows: Row[]) => {
+    setRows(rows);
+  };
+
+  // ✅ Good: Stable reference
+  const handleRowsChange = useCallback((rows: Row[]) => {
+    setRows(rows);
+  }, []);
+
+  return <DataGrid columns={columns} rows={rows} onRowsChange={handleRowsChange} />;
+}
+```
+
+### Row Class Function
+
+```tsx
+// ✅ Good: Define outside component
+function rowClass(row: Row, rowIdx: number) {
+  return rowIdx % 2 === 0 ? 'even' : 'odd';
+}
+
+function MyGrid() {
+  return <DataGrid columns={columns} rows={rows} rowClass={rowClass} />;
+}
+
+// ✅ Good: Memoize if inside component
+function MyGrid() {
+  const rowClass = useCallback((row: Row, rowIdx: number) => {
+    return rowIdx % 2 === 0 ? 'even' : 'odd';
+  }, []);
+
+  return <DataGrid columns={columns} rows={rows} rowClass={rowClass} />;
+}
+```
+
+<Warning>
+  Unstable `rowClass` functions cause all visible rows to re-render on every update.
+</Warning>
+
+## Column Width Optimization
+
+### Auto-Sizing Content
+
+Use `max-content` carefully:
+
+```tsx
+const columns: readonly Column<Row>[] = [
+  {
+    key: 'id',
+    name: 'ID',
+    width: 80 // ✅ Fixed width is fastest
+  },
+  {
+    key: 'name',
+    name: 'Name',
+    width: 'max-content' // ⚠️ Calculates width from visible rows only
+  }
+];
+```
+
+<Note>
+  `max-content` width is calculated from visible rows in the viewport. It's useful but may change as you scroll.
+</Note>
+
+## Render Function Optimization
+
+### Column Render Functions
+
+Define render functions outside component or memoize:
+
+```tsx
+import type { RenderCellProps } from 'react-data-grid';
+
+// ✅ Good: Define outside component
+function CustomCell({ row, column }: RenderCellProps<Row>) {
+  return <div>{row[column.key]}</div>;
+}
+
+const columns: readonly Column<Row>[] = [
+  {
+    key: 'name',
+    name: 'Name',
+    renderCell: CustomCell
+  }
+];
+
+// ❌ Bad: New function on every render
+function MyGrid() {
+  const columns = [
+    {
+      key: 'name',
+      name: 'Name',
+      renderCell: ({ row, column }) => <div>{row[column.key]}</div>
+    }
+  ];
+  return <DataGrid columns={columns} rows={rows} />;
+}
+```
+
+## Large Dataset Strategies
+
+### Pagination
+
+For very large datasets, implement pagination:
+
+```tsx
+import { useState } from 'react';
+import { DataGrid } from 'react-data-grid';
+
+function MyGrid({ allRows }: { allRows: Row[] }) {
+  const [page, setPage] = useState(0);
+  const pageSize = 100;
+
+  const rows = allRows.slice(page * pageSize, (page + 1) * pageSize);
+
+  return (
+    <>
+      <DataGrid columns={columns} rows={rows} />
+      <button onClick={() => setPage(page - 1)} disabled={page === 0}>
+        Previous
+      </button>
+      <button
+        onClick={() => setPage(page + 1)}
+        disabled={(page + 1) * pageSize >= allRows.length}
+      >
+        Next
+      </button>
+    </>
+  );
+}
+```
+
+### Infinite Scroll
+
+Load more data as the user scrolls:
+
+```tsx
+import { useState, useCallback } from 'react';
+import { DataGrid } from 'react-data-grid';
+
+function MyGrid() {
+  const [rows, setRows] = useState(initialRows);
+
+  const handleScroll = useCallback(
+    (event: React.UIEvent<HTMLDivElement>) => {
+      const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
+
+      // Load more when near bottom
+      if (scrollHeight - scrollTop <= clientHeight * 1.5) {
+        loadMoreRows().then((newRows) => {
+          setRows([...rows, ...newRows]);
+        });
+      }
+    },
+    [rows]
+  );
+
+  return <DataGrid columns={columns} rows={rows} onScroll={handleScroll} />;
+}
+```
+
+## Column Sorting Performance
+
+Sort data efficiently:
+
+```tsx
+import { useMemo, useState } from 'react';
+import { DataGrid, type SortColumn } from 'react-data-grid';
+
+function MyGrid({ initialRows }: { initialRows: Row[] }) {
+  const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>([]);
+
+  // ✅ Good: Memoize sorted rows
+  const rows = useMemo(() => {
+    if (sortColumns.length === 0) return initialRows;
+
+    return [...initialRows].sort((a, b) => {
+      for (const sort of sortColumns) {
+        const aValue = a[sort.columnKey];
+        const bValue = b[sort.columnKey];
+        if (aValue < bValue) return sort.direction === 'ASC' ? -1 : 1;
+        if (aValue > bValue) return sort.direction === 'ASC' ? 1 : -1;
+      }
+      return 0;
+    });
+  }, [initialRows, sortColumns]);
+
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      sortColumns={sortColumns}
+      onSortColumnsChange={setSortColumns}
+    />
+  );
+}
+```
+
+## Bundle Size Optimization
+
+React Data Grid has zero dependencies and supports tree-shaking:
+
+```tsx
+// ✅ Import only what you need
+import { DataGrid, type Column } from 'react-data-grid';
+import 'react-data-grid/lib/styles.css';
+
+// Tree-shaking removes unused exports
+```
+
+<Tip>
+  The library is ~40KB minified + gzipped with all features included.
+</Tip>
+
+## Profiling Tips
+
+Use React DevTools Profiler to identify performance bottlenecks:
+
+1. Record a profiling session while interacting with the grid
+2. Look for components that render frequently
+3. Check if `columns` or callback props are changing unnecessarily
+4. Verify that row components only re-render when their data changes
+
+## Summary
+
+<Warning>
+  **Critical performance rules:**
+  - Always memoize the `columns` array
+  - Reuse unchanged row objects when updating
+  - Define callback functions outside components or use `useCallback`
+  - Use `rowKeyGetter` for efficient reconciliation
+  - Be cautious with dynamic row heights on large datasets
+</Warning>

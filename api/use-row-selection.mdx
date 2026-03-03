@@ -1,0 +1,95 @@
+---
+title: useRowSelection
+description: Hook for managing row selection state in custom cell renderers
+---
+
+## Overview
+
+The `useRowSelection` hook is used within custom cell renderers to implement custom row selection functionality. It provides access to the current row's selection state and a callback to change the selection.
+
+## Signature
+
+```tsx
+function useRowSelection<R>(): {
+  isRowSelectionDisabled: boolean;
+  isRowSelected: boolean;
+  onRowSelectionChange: (event: SelectRowEvent<R>) => void;
+}
+```
+
+## Return Value
+
+<ResponseField name="isRowSelectionDisabled" type="boolean">
+  Whether selection is disabled for this row.
+</ResponseField>
+
+<ResponseField name="isRowSelected" type="boolean">
+  Whether this row is currently selected.
+</ResponseField>
+
+<ResponseField name="onRowSelectionChange" type="(event: SelectRowEvent<R>) => void">
+  Callback function to change the selection state of the row.
+</ResponseField>
+
+## SelectRowEvent Type
+
+```tsx
+interface SelectRowEvent<R> {
+  row: R;
+  checked: boolean;
+  isShiftClick: boolean;
+}
+```
+
+<ParamField path="row" type="R" required>
+  The row object.
+</ParamField>
+
+<ParamField path="checked" type="boolean" required>
+  Whether the row should be selected.
+</ParamField>
+
+<ParamField path="isShiftClick" type="boolean" required>
+  Whether the shift key was pressed during selection (for range selection).
+</ParamField>
+
+## Usage
+
+This hook must be called within a custom cell renderer that is rendered inside the DataGrid.
+
+```tsx
+import { useRowSelection, type RenderCellProps } from 'react-data-grid';
+
+function CustomSelectCell({ row }: RenderCellProps<Row>) {
+  const { isRowSelectionDisabled, isRowSelected, onRowSelectionChange } = useRowSelection();
+
+  return (
+    <input
+      type="checkbox"
+      disabled={isRowSelectionDisabled}
+      checked={isRowSelected}
+      onChange={(event) =>
+        onRowSelectionChange({
+          row,
+          checked: event.currentTarget.checked,
+          isShiftClick: event.nativeEvent.shiftKey
+        })
+      }
+    />
+  );
+}
+```
+
+## Error Handling
+
+The hook will throw an error if used outside of a cell renderer:
+
+```
+Error: useRowSelection must be used within renderCell
+```
+
+## Related
+
+- [useHeaderRowSelection](/api/use-header-row-selection) - Hook for header row selection
+- [SelectColumn](/api/select-column) - Pre-configured column for row selection
+- [renderCheckbox](/api/render-checkbox) - Default checkbox renderer

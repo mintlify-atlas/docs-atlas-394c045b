@@ -1,0 +1,496 @@
+---
+title: Accessibility
+description: Accessibility features and ARIA attributes in React Data Grid
+---
+
+## Overview
+
+React Data Grid is built with accessibility as a priority. It implements proper ARIA attributes and keyboard navigation following the [ARIA Grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/) and [ARIA Treegrid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/).
+
+## ARIA Attributes
+
+### Grid Role
+
+The grid container has the `role="grid"` attribute by default:
+
+```tsx
+import { DataGrid } from 'react-data-grid';
+
+function MyGrid() {
+  return <DataGrid columns={columns} rows={rows} />;
+}
+```
+
+For tree grids with hierarchical data:
+
+```tsx
+import { TreeDataGrid } from 'react-data-grid';
+
+function MyTreeGrid() {
+  return (
+    <TreeDataGrid
+      columns={columns}
+      rows={rows}
+      groupBy={['category']}
+      rowGrouper={rowGrouper}
+      expandedGroupIds={expandedGroupIds}
+      onExpandedGroupIdsChange={setExpandedGroupIds}
+    />
+  );
+}
+```
+
+<Note>
+  `TreeDataGrid` automatically sets `role="treegrid"` and manages appropriate ARIA attributes for hierarchical navigation.
+</Note>
+
+### Grid Labels
+
+Provide accessible labels using `aria-label` or `aria-labelledby`:
+
+```tsx
+// Using aria-label
+<DataGrid aria-label="Product inventory" columns={columns} rows={rows} />
+
+// Using aria-labelledby
+<>
+  <h2 id="grid-title">Product Inventory</h2>
+  <DataGrid aria-labelledby="grid-title" columns={columns} rows={rows} />
+</>
+```
+
+<Warning>
+  Always provide a label using `aria-label` or `aria-labelledby` for screen reader users.
+</Warning>
+
+### Grid Description
+
+Add descriptions using `aria-description` or `aria-describedby`:
+
+```tsx
+// Using aria-description
+<DataGrid
+  aria-label="Product inventory"
+  aria-description="Use arrow keys to navigate, Enter to edit"
+  columns={columns}
+  rows={rows}
+/>
+
+// Using aria-describedby
+<>
+  <p id="grid-desc">Use arrow keys to navigate, Enter to edit cells</p>
+  <DataGrid
+    aria-label="Product inventory"
+    aria-describedby="grid-desc"
+    columns={columns}
+    rows={rows}
+  />
+</>
+```
+
+### Row Count
+
+The grid automatically sets `aria-rowcount` to the total number of rows:
+
+```tsx
+// Automatic: aria-rowcount = headerRows + dataRows + summaryRows
+<DataGrid columns={columns} rows={rows} />
+```
+
+Override for virtualized or paginated data:
+
+```tsx
+// Display page 1 of 100 pages, 10 rows per page
+<DataGrid
+  aria-label="Products (Page 1 of 100)"
+  aria-rowcount={1000} // Total rows across all pages
+  columns={columns}
+  rows={currentPageRows} // 10 rows
+/>
+```
+
+### Column Count
+
+Automatically set via `aria-colcount`:
+
+```tsx
+// Automatic: aria-colcount = columns.length
+<DataGrid columns={columns} rows={rows} />
+```
+
+### Row Index
+
+Each row has `aria-rowindex` (1-based):
+
+```tsx
+// Automatically applied:
+// Header row: aria-rowindex="1"
+// First data row: aria-rowindex="2"
+// Second data row: aria-rowindex="3"
+```
+
+### Column Index
+
+Each cell has `aria-colindex` (1-based):
+
+```tsx
+// Automatically applied:
+// First cell: aria-colindex="1"
+// Second cell: aria-colindex="2"
+```
+
+### Row Selection
+
+Selected rows have `aria-selected="true"`:
+
+```tsx
+import { useState } from 'react';
+import { DataGrid, SelectColumn, type Column } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  name: string;
+}
+
+const columns: readonly Column<Row>[] = [
+  SelectColumn,
+  { key: 'id', name: 'ID' },
+  { key: 'name', name: 'Name' }
+];
+
+function MyGrid() {
+  const [selectedRows, setSelectedRows] = useState((): ReadonlySet<number> => new Set());
+
+  return (
+    <DataGrid
+      aria-label="Users"
+      columns={columns}
+      rows={rows}
+      rowKeyGetter={(row) => row.id}
+      selectedRows={selectedRows}
+      onSelectedRowsChange={setSelectedRows}
+    />
+  );
+}
+```
+
+<Note>
+  When row selection is enabled, the grid automatically sets `aria-multiselectable="true"`.
+</Note>
+
+### Checkbox Labels
+
+Provide labels for selection checkboxes:
+
+```tsx
+import { DataGrid, renderCheckbox } from 'react-data-grid';
+
+function MyGrid() {
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      renderers={{
+        renderCheckbox: (props) => renderCheckbox({ ...props, 'aria-label': 'Select row' })
+      }}
+    />
+  );
+}
+```
+
+## Keyboard Navigation
+
+### Arrow Keys
+
+Navigate between cells:
+
+- **Arrow Up** - Move to cell above
+- **Arrow Down** - Move to cell below
+- **Arrow Left** - Move to cell on left
+- **Arrow Right** - Move to cell on right
+
+```tsx
+<DataGrid aria-label="Products" columns={columns} rows={rows} />
+```
+
+### Tab Navigation
+
+- **Tab** - Move to next cell
+- **Shift + Tab** - Move to previous cell
+
+When Tab reaches the last cell, focus moves to the next focusable element outside the grid.
+
+### Home and End Keys
+
+- **Home** - Move to first cell in row
+- **Ctrl + Home** - Move to first cell in grid
+- **End** - Move to last cell in row
+- **Ctrl + End** - Move to last cell in grid
+
+### Page Up and Page Down
+
+- **Page Up** - Scroll up one viewport
+- **Page Down** - Scroll down one viewport
+
+### Editing
+
+- **Enter** - Enter edit mode for editable cells
+- **Escape** - Cancel editing and discard changes
+- **Enter** (in edit mode) - Commit changes and exit edit mode
+
+### Row Selection
+
+- **Space** - Select/deselect current row (when SelectColumn is present)
+- **Shift + Space** - Toggle row selection without changing focus
+
+### Custom Keyboard Behavior
+
+Override default behavior with `onCellKeyDown`:
+
+```tsx
+import type { CellKeyDownArgs, CellKeyboardEvent } from 'react-data-grid';
+
+function onCellKeyDown(args: CellKeyDownArgs<Row>, event: CellKeyboardEvent) {
+  if (args.mode === 'SELECT' && event.key === 'Enter') {
+    // Prevent default "start editing" behavior
+    event.preventGridDefault();
+
+    // Custom action
+    console.log('Enter pressed on row:', args.row);
+  }
+}
+
+<DataGrid columns={columns} rows={rows} onCellKeyDown={onCellKeyDown} />;
+```
+
+### Preventing Tab Exit
+
+Prevent Tab from leaving the grid:
+
+```tsx
+import type { CellKeyDownArgs, CellKeyboardEvent } from 'react-data-grid';
+
+function onCellKeyDown(args: CellKeyDownArgs<Row>, event: CellKeyboardEvent) {
+  if (args.mode === 'SELECT' && event.key === 'Tab') {
+    event.preventGridDefault();
+  }
+}
+
+<DataGrid columns={columns} rows={rows} onCellKeyDown={onCellKeyDown} />;
+```
+
+## TreeGrid Navigation
+
+For hierarchical data, additional keyboard shortcuts apply:
+
+- **Arrow Right** - Expand collapsed group (on group row)
+- **Arrow Left** - Collapse expanded group (on group row)
+- **Arrow Left** - Move to parent group (on child row)
+
+```tsx
+import { TreeDataGrid } from 'react-data-grid';
+
+function MyTreeGrid() {
+  return (
+    <TreeDataGrid
+      aria-label="Grouped products"
+      columns={columns}
+      rows={rows}
+      groupBy={['category', 'subcategory']}
+      rowGrouper={rowGrouper}
+      expandedGroupIds={expandedGroupIds}
+      onExpandedGroupIdsChange={setExpandedGroupIds}
+    />
+  );
+}
+```
+
+<Note>
+  Group rows automatically receive appropriate ARIA attributes including `aria-expanded`, `aria-level`, `aria-posinset`, and `aria-setsize`.
+</Note>
+
+## Focus Management
+
+### Grid Focus
+
+The grid container is keyboard focusable with `tabIndex={-1}`:
+
+```tsx
+// Focus moves to the grid container first
+<DataGrid aria-label="Products" columns={columns} rows={rows} />
+```
+
+### Cell Focus
+
+Active cells receive `tabIndex={0}` for keyboard focus:
+
+```tsx
+// Only the selected cell is in the tab order
+// All other cells have tabIndex={-1}
+```
+
+### Programmatic Selection
+
+Use the ref to programmatically select cells:
+
+```tsx
+import { useRef } from 'react';
+import { DataGrid, type DataGridHandle } from 'react-data-grid';
+
+function MyGrid() {
+  const gridRef = useRef<DataGridHandle>(null);
+
+  function selectCell() {
+    gridRef.current?.selectCell({ idx: 0, rowIdx: 0 }, { shouldFocusCell: true });
+  }
+
+  return (
+    <>
+      <button onClick={selectCell}>Focus first cell</button>
+      <DataGrid ref={gridRef} aria-label="Products" columns={columns} rows={rows} />
+    </>
+  );
+}
+```
+
+## Screen Reader Support
+
+### Testing with Screen Readers
+
+Test with multiple screen readers:
+
+- **NVDA** (Windows) - Free and open source
+- **JAWS** (Windows) - Industry standard
+- **VoiceOver** (macOS/iOS) - Built-in
+- **TalkBack** (Android) - Built-in
+
+### Announcements
+
+Screen readers announce:
+
+- Grid label and description
+- Current cell position (row and column)
+- Column headers
+- Cell content
+- Selection state
+- Sort state
+- Edit mode state
+
+### Example Announcement
+
+```tsx
+<DataGrid
+  aria-label="Product inventory"
+  aria-description="Sortable data grid with 100 products"
+  columns={columns}
+  rows={rows}
+/>
+```
+
+When navigating:
+
+> "Product inventory. Sortable data grid with 100 products. Column 1, Row 2. Product name: Laptop."
+
+## Testing Accessibility
+
+### Querying by Role
+
+Use role-based queries in tests:
+
+```tsx
+import { render, screen } from '@testing-library/react';
+import { DataGrid } from 'react-data-grid';
+
+test('grid is accessible', () => {
+  render(<DataGrid aria-label="Products" columns={columns} rows={rows} />);
+
+  const grid = screen.getByRole('grid', { name: 'Products' });
+  expect(grid).toBeInTheDocument();
+
+  const rows = screen.getAllByRole('row');
+  expect(rows.length).toBeGreaterThan(0);
+});
+```
+
+### Axe Testing
+
+Use axe-core for automated accessibility testing:
+
+```tsx
+import { render } from '@testing-library/react';
+import { axe } from 'jest-axe';
+import { DataGrid } from 'react-data-grid';
+
+test('grid has no accessibility violations', async () => {
+  const { container } = render(
+    <DataGrid aria-label="Products" columns={columns} rows={rows} />
+  );
+
+  const results = await axe(container);
+  expect(results).toHaveNoViolations();
+});
+```
+
+## Best Practices
+
+<Warning>
+  **Always provide:**
+  - `aria-label` or `aria-labelledby` for grid identification
+  - Proper column names for header cells
+  - `aria-label` for icon buttons and checkboxes
+  - Keyboard navigation support
+</Warning>
+
+<Tip>
+  Test with keyboard only (no mouse) to ensure all functionality is accessible.
+</Tip>
+
+### Column Headers
+
+Provide clear, descriptive column names:
+
+```tsx
+const columns: readonly Column<Row>[] = [
+  { key: 'id', name: 'Product ID' }, // ✅ Clear
+  { key: 'name', name: 'Product Name' }, // ✅ Clear
+  { key: 'price', name: '$' } // ❌ Not descriptive
+];
+```
+
+### Action Buttons
+
+Label action buttons in custom cells:
+
+```tsx
+function ActionCell({ row }: RenderCellProps<Row>) {
+  return (
+    <>
+      <button aria-label={`Edit ${row.name}`}>✏️</button>
+      <button aria-label={`Delete ${row.name}`}>🗑️</button>
+    </>
+  );
+}
+```
+
+### Loading States
+
+Indicate loading with `aria-busy`:
+
+```tsx
+function MyGrid() {
+  const [isLoading, setIsLoading] = useState(true);
+
+  return (
+    <div aria-busy={isLoading} aria-label="Products">
+      <DataGrid columns={columns} rows={rows} />
+    </div>
+  );
+}
+```
+
+## Resources
+
+- [ARIA Grid Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/)
+- [ARIA Treegrid Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/)
+- [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
+- [WebAIM Screen Reader Testing](https://webaim.org/articles/screenreader_testing/)

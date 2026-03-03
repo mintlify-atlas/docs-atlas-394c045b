@@ -1,0 +1,232 @@
+---
+title: SelectCellFormatter
+description: Component for rendering row selection checkboxes
+---
+
+## Overview
+
+A formatter component for rendering row selection checkboxes. This component is used internally by the `SelectColumn` but can also be used in custom column implementations.
+
+```tsx
+import { SelectCellFormatter } from 'react-data-grid';
+
+function CustomSelectColumn() {
+  return (
+    <SelectCellFormatter
+      value={isRowSelected}
+      onChange={(checked, shift) => handleSelectionChange(checked, shift)}
+      aria-label="Select row"
+    />
+  );
+}
+```
+
+## Props
+
+<ParamField path="value" type="boolean" required>
+  Whether the checkbox is checked.
+
+  ```tsx
+  <SelectCellFormatter value={isRowSelected} onChange={handleChange} />
+  ```
+</ParamField>
+
+<ParamField path="onChange" type="(checked: boolean, shift: boolean) => void" required>
+  Callback when the checkbox state changes.
+
+  - `checked`: The new checked state
+  - `shift`: Whether the Shift key was held during the click (for range selection)
+
+  ```tsx
+  function handleChange(checked: boolean, shift: boolean) {
+    if (shift) {
+      // Handle range selection
+      selectRowRange(checked);
+    } else {
+      // Handle single row selection
+      selectRow(checked);
+    }
+  }
+  ```
+</ParamField>
+
+<ParamField path="tabIndex" type="number">
+  The tab index for keyboard navigation.
+
+  **Default:** `0`
+</ParamField>
+
+<ParamField path="indeterminate" type="boolean">
+  Whether the checkbox is in an indeterminate state. Used in header cells when some (but not all) rows are selected.
+
+  ```tsx
+  <SelectCellFormatter
+    value={allRowsSelected}
+    indeterminate={someRowsSelected}
+    onChange={handleSelectAll}
+  />
+  ```
+</ParamField>
+
+<ParamField path="disabled" type="boolean">
+  Whether the checkbox is disabled.
+
+  ```tsx
+  <SelectCellFormatter
+    value={isRowSelected}
+    disabled={isRowSelectionDisabled}
+    onChange={handleChange}
+  />
+  ```
+</ParamField>
+
+<ParamField path="aria-label" type="string">
+  Accessible label for the checkbox.
+
+  ```tsx
+  <SelectCellFormatter
+    value={isRowSelected}
+    onChange={handleChange}
+    aria-label="Select row"
+  />
+  ```
+</ParamField>
+
+<ParamField path="aria-labelledby" type="string">
+  ID of the element that labels the checkbox.
+
+  ```tsx
+  <SelectCellFormatter
+    value={isRowSelected}
+    onChange={handleChange}
+    aria-labelledby="row-label-id"
+  />
+  ```
+</ParamField>
+
+## Usage with SelectColumn
+
+The easiest way to add row selection is to use the pre-configured `SelectColumn`:
+
+```tsx
+import { DataGrid, SelectColumn, type Column } from 'react-data-grid';
+
+const columns: readonly Column<Row>[] = [SelectColumn, ...otherColumns];
+
+function rowKeyGetter(row: Row) {
+  return row.id;
+}
+
+function MyGrid() {
+  const [selectedRows, setSelectedRows] = useState((): ReadonlySet<number> => new Set());
+
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      rowKeyGetter={rowKeyGetter}
+      selectedRows={selectedRows}
+      onSelectedRowsChange={setSelectedRows}
+    />
+  );
+}
+```
+
+## Custom Selection Column
+
+You can create a custom selection column using `SelectCellFormatter`:
+
+```tsx
+import { SelectCellFormatter, useRowSelection, type Column } from 'react-data-grid';
+
+function CustomSelectCell({ row }: RenderCellProps<Row>) {
+  const { isRowSelectionDisabled, isRowSelected, onRowSelectionChange } = useRowSelection();
+
+  return (
+    <SelectCellFormatter
+      value={isRowSelected}
+      disabled={isRowSelectionDisabled}
+      onChange={(checked, shift) =>
+        onRowSelectionChange({
+          row,
+          checked,
+          isShiftClick: shift
+        })
+      }
+      aria-label={`Select row ${row.id}`}
+    />
+  );
+}
+
+const columns: Column<Row>[] = [
+  {
+    key: 'select',
+    name: '',
+    width: 35,
+    frozen: true,
+    renderCell: CustomSelectCell,
+    renderHeaderCell: CustomSelectHeaderCell
+  },
+  ...otherColumns
+];
+```
+
+## Custom Header Cell
+
+For "select all" functionality in the header:
+
+```tsx
+import { useLayoutEffect, useRef } from 'react';
+import { SelectCellFormatter, useHeaderRowSelection } from 'react-data-grid';
+
+function CustomSelectHeaderCell() {
+  const { isIndeterminate, isRowSelected, onRowSelectionChange } = useHeaderRowSelection();
+  const checkboxRef = useRef<HTMLInputElement>(null);
+
+  useLayoutEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.indeterminate = isIndeterminate && !isRowSelected;
+    }
+  }, [isIndeterminate, isRowSelected]);
+
+  return (
+    <SelectCellFormatter
+      value={isRowSelected}
+      indeterminate={isIndeterminate}
+      onChange={(checked) => onRowSelectionChange({ checked })}
+      aria-label="Select all rows"
+    />
+  );
+}
+```
+
+## Styling
+
+The checkbox can be styled using CSS variables:
+
+```css
+.rdg {
+  --rdg-checkbox-focus-color: hsl(207deg 100% 69%);
+}
+
+.custom-checkbox {
+  --rdg-checkbox-focus-color: #ff6b6b;
+}
+```
+
+## Accessibility
+
+<Note>
+  Always provide either `aria-label` or `aria-labelledby` for proper screen reader support.
+</Note>
+
+The component handles:
+- Keyboard navigation (Tab, Space)
+- ARIA states (checked, indeterminate, disabled)
+- Focus management
+- Screen reader announcements
+
+## Related Hooks
+
+- `useRowSelection()` - Hook for managing row selection state in custom cell renderers
+- `useHeaderRowSelection()` - Hook for managing header row selection state in custom header cell renderers

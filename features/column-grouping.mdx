@@ -1,0 +1,421 @@
+---
+title: Column Grouping
+description: Group related columns under shared headers
+---
+
+Column grouping allows you to organize related columns under shared parent headers, creating a hierarchical column structure.
+
+## Basic Usage
+
+Create column groups by defining a hierarchy:
+
+```tsx
+import { DataGrid, type ColumnOrColumnGroup } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+}
+
+const columns: ColumnOrColumnGroup<Row>[] = [
+  { key: 'id', name: 'ID', width: 80 },
+  {
+    name: 'Personal Info',
+    children: [
+      { key: 'firstName', name: 'First Name' },
+      { key: 'lastName', name: 'Last Name' }
+    ]
+  },
+  {
+    name: 'Contact',
+    children: [
+      { key: 'email', name: 'Email' },
+      { key: 'phone', name: 'Phone' }
+    ]
+  }
+];
+
+function MyGrid() {
+  return <DataGrid columns={columns} rows={rows} />;
+}
+```
+
+<Accordion title="Visual Structure">
+  This creates a two-level header structure:
+  
+  ```
+  ┌────────┬────────────────────────────┬──────────────────────────┐
+  │        │     Personal Info          │        Contact           │
+  │   ID   ├──────────────┬─────────────┼─────────────┬────────────┤
+  │        │  First Name  │  Last Name  │    Email    │   Phone    │
+  └────────┴──────────────┴─────────────┴─────────────┴────────────┘
+  ```
+</Accordion>
+
+## Multi-Level Nesting
+
+Column groups can be nested multiple levels deep:
+
+```tsx
+const columns: ColumnOrColumnGroup<Row>[] = [
+  { key: 'id', name: 'ID' },
+  {
+    name: 'Employee',
+    children: [
+      {
+        name: 'Personal',
+        children: [
+          { key: 'firstName', name: 'First Name' },
+          { key: 'lastName', name: 'Last Name' }
+        ]
+      },
+      {
+        name: 'Contact',
+        children: [
+          { key: 'email', name: 'Email' },
+          { key: 'phone', name: 'Phone' }
+        ]
+      }
+    ]
+  },
+  {
+    name: 'Employment',
+    children: [
+      { key: 'department', name: 'Department' },
+      { key: 'startDate', name: 'Start Date' }
+    ]
+  }
+];
+```
+
+<Tabs>
+  <Tab title="Two Levels">
+    ```tsx
+    const columns: ColumnOrColumnGroup<Row>[] = [
+      { key: 'id', name: 'ID' },
+      {
+        name: 'Group',
+        children: [
+          { key: 'col1', name: 'Column 1' },
+          { key: 'col2', name: 'Column 2' }
+        ]
+      }
+    ];
+    ```
+    
+    Simple grouping with one parent header.
+  </Tab>
+  
+  <Tab title="Three Levels">
+    ```tsx
+    const columns: ColumnOrColumnGroup<Row>[] = [
+      {
+        name: 'Level 1',
+        children: [
+          {
+            name: 'Level 2',
+            children: [
+              { key: 'col1', name: 'Column 1' },
+              { key: 'col2', name: 'Column 2' }
+            ]
+          }
+        ]
+      }
+    ];
+    ```
+    
+    Deep nesting for complex hierarchies.
+  </Tab>
+</Tabs>
+
+## Styling Group Headers
+
+Apply custom styles to column group headers:
+
+```tsx
+const columns: ColumnOrColumnGroup<Row>[] = [
+  {
+    name: 'Personal Info',
+    headerCellClass: 'group-header-primary',
+    children: [
+      { key: 'firstName', name: 'First Name' },
+      { key: 'lastName', name: 'Last Name' }
+    ]
+  }
+];
+```
+
+```css
+.group-header-primary {
+  background-color: #f0f0f0;
+  font-weight: bold;
+  text-align: center;
+  border-bottom: 2px solid #333;
+}
+```
+
+<Accordion title="Individual Column Styling">
+  Child columns can have their own styles:
+  
+  ```tsx
+  const columns: ColumnOrColumnGroup<Row>[] = [
+    {
+      name: 'Personal Info',
+      headerCellClass: 'group-header',
+      children: [
+        {
+          key: 'firstName',
+          name: 'First Name',
+          headerCellClass: 'required-field'
+        },
+        {
+          key: 'lastName',
+          name: 'Last Name',
+          headerCellClass: 'required-field'
+        }
+      ]
+    }
+  ];
+  ```
+  
+  ```css
+  .group-header {
+    background-color: #e8e8e8;
+    font-weight: bold;
+  }
+  
+  .required-field {
+    position: relative;
+  }
+  
+  .required-field::after {
+    content: '*';
+    color: red;
+    margin-left: 4px;
+  }
+  ```
+</Accordion>
+
+## React Elements as Names
+
+Use React elements for rich header content:
+
+```tsx
+import { InfoIcon } from './icons';
+
+const columns: ColumnOrColumnGroup<Row>[] = [
+  {
+    name: (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <InfoIcon size={16} />
+        <span>Personal Information</span>
+      </div>
+    ),
+    children: [
+      { key: 'firstName', name: 'First Name' },
+      { key: 'lastName', name: 'Last Name' }
+    ]
+  }
+];
+```
+
+<Accordion title="Interactive Group Headers">
+  Add interactivity to group headers:
+  
+  ```tsx
+  function GroupHeader({ title, onToggle }: { title: string; onToggle: () => void }) {
+    const [collapsed, setCollapsed] = useState(false);
+    
+    return (
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <button
+          onClick={() => {
+            setCollapsed(!collapsed);
+            onToggle();
+          }}
+          aria-expanded={!collapsed}
+        >
+          {collapsed ? '▶' : '▼'}
+        </button>
+        <span>{title}</span>
+      </div>
+    );
+  }
+  
+  const columns: ColumnOrColumnGroup<Row>[] = [
+    {
+      name: <GroupHeader title="Personal Info" onToggle={() => console.log('toggled')} />,
+      children: [
+        { key: 'firstName', name: 'First Name' },
+        { key: 'lastName', name: 'Last Name' }
+      ]
+    }
+  ];
+  ```
+  
+  <Note>
+  The grid does not provide built-in functionality to hide/show columns based on group toggles. You'll need to implement this logic yourself.
+  </Note>
+</Accordion>
+
+## Column Spanning
+
+Column groups work seamlessly with column spanning:
+
+```tsx
+const columns: ColumnOrColumnGroup<Row>[] = [
+  {
+    name: 'Details',
+    children: [
+      {
+        key: 'title',
+        name: 'Title',
+        colSpan(args) {
+          if (args.type === 'ROW' && args.row.isFullWidth) {
+            return 3; // Span across all columns in the group
+          }
+          return undefined;
+        }
+      },
+      { key: 'status', name: 'Status' },
+      { key: 'priority', name: 'Priority' }
+    ]
+  }
+];
+```
+
+## Features in Groups
+
+All column features work within groups:
+
+```tsx
+const columns: ColumnOrColumnGroup<Row>[] = [
+  {
+    name: 'User Data',
+    headerCellClass: 'group-header',
+    children: [
+      {
+        key: 'name',
+        name: 'Name',
+        sortable: true,
+        resizable: true,
+        frozen: false
+      },
+      {
+        key: 'email',
+        name: 'Email',
+        sortable: true,
+        resizable: true,
+        editable: true
+      },
+      {
+        key: 'role',
+        name: 'Role',
+        sortable: true
+      }
+    ]
+  }
+];
+```
+
+<Info>
+**Supported Features**:
+- Sorting
+- Resizing
+- Editing
+- Custom renderers
+- Cell spanning
+- Column classes
+
+**Note**: Column groups themselves cannot be frozen, sorted, or resized. Only individual columns can use these features.
+</Info>
+
+## Limitations
+
+<Accordion title="TreeDataGrid Compatibility">
+  Column groups are **not supported** in `TreeDataGrid`:
+  
+  ```tsx
+  import { TreeDataGrid } from 'react-data-grid';
+  
+  // ❌ This will not work
+  <TreeDataGrid
+    columns={[
+      {
+        name: 'Group',
+        children: [/* ... */]
+      }
+    ]}
+    // ...
+  />
+  
+  // ✅ Use flat columns with TreeDataGrid
+  <TreeDataGrid
+    columns={[
+      { key: 'col1', name: 'Column 1' },
+      { key: 'col2', name: 'Column 2' }
+    ]}
+    // ...
+  />
+  ```
+  
+  From the source code (src/TreeDataGrid.tsx):
+  ```tsx
+  export interface TreeDataGridProps<R, SR = unknown, K extends Key = Key> extends Omit<
+    DataGridProps<R, SR, K>,
+    'columns' | /* ... */
+  > {
+    columns: readonly Column<NoInfer<R>, NoInfer<SR>>[]; // Must be flat Column[]
+    // ...
+  }
+  ```
+</Accordion>
+
+## API Reference
+
+### ColumnGroup Type
+
+```tsx
+interface ColumnGroup<R, SR = unknown> {
+  /** The name of the column group, displayed in the header cell */
+  readonly name: string | ReactElement;
+  
+  /** Class name(s) for the group header cell */
+  readonly headerCellClass?: string | undefined | null;
+  
+  /** Child columns or nested column groups */
+  readonly children: readonly ColumnOrColumnGroup<R, SR>[];
+}
+```
+
+### ColumnOrColumnGroup Type
+
+```tsx
+type ColumnOrColumnGroup<R, SR = unknown> = Column<R, SR> | ColumnGroup<R, SR>;
+```
+
+Union type representing either a regular column or a column group.
+
+### CalculatedColumnParent Type
+
+The internal type used for rendered parent groups:
+
+```tsx
+interface CalculatedColumnParent<R, SR> {
+  readonly name: string | ReactElement;
+  readonly parent: CalculatedColumnParent<R, SR> | undefined;
+  readonly idx: number;
+  readonly colSpan: number;
+  readonly level: number;
+  readonly headerCellClass?: string | undefined | null;
+}
+```
+
+## Related Features
+
+- [Column Spanning](/features/cell-spanning#column-spanning) - Span cells across multiple columns
+- [Column Resizing](/features/column-resizing) - Resize columns within groups
+- [Frozen Columns](/features/frozen-columns) - Freeze individual columns (not entire groups)

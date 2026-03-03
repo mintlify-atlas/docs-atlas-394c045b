@@ -1,80 +1,436 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick Start
+description: Build your first data grid with React Data Grid in minutes
 ---
 
-## Get started in three steps
+# Quick Start
 
-Get your documentation site running locally and make your first customization.
+This guide will walk you through creating a fully functional data grid with sorting, editing, and row selection.
 
-### Step 1: Set up your local environment
+## Basic Grid
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+Let's start with a simple example that displays a list of tasks:
 
-### Step 2: Deploy your changes
+<Steps>
+  <Step title="Import the necessary components">
+    Import the DataGrid component and the required types:
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    ```tsx
+    import 'react-data-grid/lib/styles.css';
+    import { DataGrid, type Column } from 'react-data-grid';
+    ```
+  </Step>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+  <Step title="Define your row type">
+    Create a TypeScript interface for your data:
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+    ```tsx
+    interface Row {
+      id: number;
+      title: string;
+      client: string;
+      area: string;
+      progress: number;
+      startDate: number;
+      endDate: number;
+    }
+    ```
+  </Step>
 
-### Step 3: Go live
+  <Step title="Configure columns">
+    Define the columns for your grid:
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    ```tsx
+    const columns: readonly Column<Row>[] = [
+      { key: 'id', name: 'ID', frozen: true },
+      { key: 'title', name: 'Task' },
+      { key: 'client', name: 'Client' },
+      { key: 'area', name: 'Area' },
+      { key: 'progress', name: 'Progress' }
+    ];
+    ```
 
-## Next steps
+    <Tip>
+      The `frozen: true` property pins the column to the left during horizontal scrolling.
+    </Tip>
+  </Step>
 
-Now that you have your docs running, explore these key features:
+  <Step title="Prepare your data">
+    Create some sample rows:
 
-<CardGroup cols={2}>
+    ```tsx
+    const rows: readonly Row[] = [
+      {
+        id: 1,
+        title: 'Design Homepage',
+        client: 'Acme Corp',
+        area: 'Design',
+        progress: 75,
+        startDate: Date.now(),
+        endDate: Date.now()
+      },
+      {
+        id: 2,
+        title: 'API Integration',
+        client: 'Tech Solutions',
+        area: 'Development',
+        progress: 50,
+        startDate: Date.now(),
+        endDate: Date.now()
+      }
+    ];
+    ```
+  </Step>
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
+  <Step title="Render the grid">
+    Create your component and render the DataGrid:
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
+    ```tsx
+    function App() {
+      return <DataGrid columns={columns} rows={rows} />;
+    }
+    ```
+  </Step>
+</Steps>
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
+## Adding Editing
 
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
+Make your grid editable by adding the `renderTextEditor` to columns and handling changes:
 
-</CardGroup>
+```tsx
+import { useState } from 'react';
+import { DataGrid, renderTextEditor, type Column } from 'react-data-grid';
+
+function App() {
+  const [rows, setRows] = useState<Row[]>(initialRows);
+
+  const columns: readonly Column<Row>[] = [
+    { key: 'id', name: 'ID' },
+    {
+      key: 'title',
+      name: 'Task',
+      renderEditCell: renderTextEditor
+    },
+    {
+      key: 'client',
+      name: 'Client',
+      renderEditCell: renderTextEditor
+    }
+  ];
+
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      onRowsChange={setRows}
+    />
+  );
+}
+```
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  Double-click a cell to start editing. Press Enter to save or Escape to cancel.
 </Note>
+
+## Adding Row Selection
+
+Enable row selection by adding the `SelectColumn` and managing selection state:
+
+```tsx
+import { useState } from 'react';
+import { DataGrid, SelectColumn, type Column } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  title: string;
+  client: string;
+}
+
+function App() {
+  const [rows] = useState<Row[]>(initialRows);
+  const [selectedRows, setSelectedRows] = useState<ReadonlySet<number>>(
+    () => new Set()
+  );
+
+  const columns: readonly Column<Row>[] = [
+    SelectColumn,
+    { key: 'id', name: 'ID' },
+    { key: 'title', name: 'Task' },
+    { key: 'client', name: 'Client' }
+  ];
+
+  function rowKeyGetter(row: Row) {
+    return row.id;
+  }
+
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      rowKeyGetter={rowKeyGetter}
+      selectedRows={selectedRows}
+      onSelectedRowsChange={setSelectedRows}
+    />
+  );
+}
+```
+
+<Tip>
+  The `rowKeyGetter` function is required for row selection. It should return a unique identifier for each row.
+</Tip>
+
+## Adding Sorting
+
+Implement sorting by tracking sort columns and applying the sort to your data:
+
+```tsx
+import { useState, useMemo } from 'react';
+import { DataGrid, type Column, type SortColumn } from 'react-data-grid';
+
+function App() {
+  const [rows] = useState<Row[]>(initialRows);
+  const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>([]);
+
+  const columns: readonly Column<Row>[] = [
+    { key: 'id', name: 'ID', sortable: true },
+    { key: 'title', name: 'Task', sortable: true },
+    { key: 'progress', name: 'Progress', sortable: true }
+  ];
+
+  const sortedRows = useMemo(() => {
+    if (sortColumns.length === 0) return rows;
+
+    return [...rows].sort((a, b) => {
+      for (const sort of sortColumns) {
+        const aValue = a[sort.columnKey as keyof Row];
+        const bValue = b[sort.columnKey as keyof Row];
+        
+        if (aValue < bValue) {
+          return sort.direction === 'ASC' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sort.direction === 'ASC' ? 1 : -1;
+        }
+      }
+      return 0;
+    });
+  }, [rows, sortColumns]);
+
+  return (
+    <DataGrid
+      columns={columns}
+      rows={sortedRows}
+      sortColumns={sortColumns}
+      onSortColumnsChange={setSortColumns}
+    />
+  );
+}
+```
+
+<Note>
+  Click a column header to sort. Hold Ctrl/Cmd and click another header to add secondary sorting.
+</Note>
+
+## Complete Example
+
+Here's a full example combining editing, selection, and sorting:
+
+```tsx
+import { useState, useMemo } from 'react';
+import 'react-data-grid/lib/styles.css';
+import {
+  DataGrid,
+  SelectColumn,
+  renderTextEditor,
+  type Column,
+  type SortColumn
+} from 'react-data-grid';
+
+interface Row {
+  id: number;
+  title: string;
+  client: string;
+  progress: number;
+}
+
+function App() {
+  const [rows, setRows] = useState<Row[]>([
+    { id: 1, title: 'Design Homepage', client: 'Acme Corp', progress: 75 },
+    { id: 2, title: 'API Integration', client: 'Tech Solutions', progress: 50 },
+    { id: 3, title: 'Database Migration', client: 'DataCo', progress: 90 }
+  ]);
+  
+  const [selectedRows, setSelectedRows] = useState<ReadonlySet<number>>(
+    () => new Set()
+  );
+  
+  const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>([]);
+
+  const columns: readonly Column<Row>[] = [
+    SelectColumn,
+    { key: 'id', name: 'ID', sortable: true, frozen: true },
+    {
+      key: 'title',
+      name: 'Task',
+      sortable: true,
+      renderEditCell: renderTextEditor
+    },
+    {
+      key: 'client',
+      name: 'Client',
+      sortable: true,
+      renderEditCell: renderTextEditor
+    },
+    {
+      key: 'progress',
+      name: 'Progress',
+      sortable: true,
+      renderCell(props) {
+        return (
+          <>
+            <progress max={100} value={props.row.progress} style={{ width: 50 }} />
+            {' '}{props.row.progress}%
+          </>
+        );
+      }
+    }
+  ];
+
+  const sortedRows = useMemo(() => {
+    if (sortColumns.length === 0) return rows;
+
+    return [...rows].sort((a, b) => {
+      for (const sort of sortColumns) {
+        const aValue = a[sort.columnKey as keyof Row];
+        const bValue = b[sort.columnKey as keyof Row];
+        
+        if (aValue < bValue) return sort.direction === 'ASC' ? -1 : 1;
+        if (aValue > bValue) return sort.direction === 'ASC' ? 1 : -1;
+      }
+      return 0;
+    });
+  }, [rows, sortColumns]);
+
+  function rowKeyGetter(row: Row) {
+    return row.id;
+  }
+
+  return (
+    <DataGrid
+      columns={columns}
+      rows={sortedRows}
+      rowKeyGetter={rowKeyGetter}
+      selectedRows={selectedRows}
+      onSelectedRowsChange={setSelectedRows}
+      onRowsChange={setRows}
+      sortColumns={sortColumns}
+      onSortColumnsChange={setSortColumns}
+      style={{ height: 400 }}
+    />
+  );
+}
+
+export default App;
+```
+
+## Key Concepts
+
+<CardGroup cols={2}>
+  <Card title="Columns" icon="table-columns">
+    Define the structure and behavior of each column with the `Column` type
+  </Card>
+  <Card title="Rows" icon="table-rows">
+    Your data can be any object type - the grid is fully generic
+  </Card>
+  <Card title="Virtualization" icon="bolt">
+    Only visible rows are rendered for optimal performance
+  </Card>
+  <Card title="Controlled State" icon="sliders">
+    Sorting, selection, and editing are controlled by your component state
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<Steps>
+  <Step title="Explore Advanced Features">
+    Learn about column resizing, grouping, frozen columns, and more in the API Reference.
+  </Step>
+  
+  <Step title="Customize Appearance">
+    Use CSS variables to customize colors, spacing, and other visual properties.
+  </Step>
+  
+  <Step title="Add Custom Renderers">
+    Create custom cell renderers, editors, and row components for complete control.
+  </Step>
+  
+  <Step title="Optimize Performance">
+    Learn best practices for handling large datasets and optimizing re-renders.
+  </Step>
+</Steps>
+
+## Common Patterns
+
+### Custom Cell Formatters
+
+Create rich cell content with custom render functions:
+
+```tsx
+const columns: readonly Column<Row>[] = [
+  {
+    key: 'status',
+    name: 'Status',
+    renderCell({ row }) {
+      return (
+        <span
+          style={{
+            color: row.status === 'active' ? 'green' : 'red',
+            fontWeight: 'bold'
+          }}
+        >
+          {row.status.toUpperCase()}
+        </span>
+      );
+    }
+  }
+];
+```
+
+### Dynamic Row Heights
+
+Set different heights for different rows:
+
+```tsx
+function getRowHeight(row: Row) {
+  return row.isExpanded ? 100 : 35;
+}
+
+<DataGrid rowHeight={getRowHeight} columns={columns} rows={rows} />
+```
+
+### Column Resizing
+
+Enable resizing for specific columns:
+
+```tsx
+const columns: readonly Column<Row>[] = [
+  {
+    key: 'title',
+    name: 'Title',
+    resizable: true,
+    minWidth: 100,
+    maxWidth: 400
+  }
+];
+```
+
+## Troubleshooting
+
+<Tip>
+  If columns aren't rendering correctly, ensure you're memoizing the `columns` array with `useMemo` or defining it outside the component to avoid unnecessary re-renders.
+</Tip>
+
+<Warning>
+  Always provide a unique `key` for each column. The grid uses these keys to track column state internally.
+</Warning>

@@ -1,0 +1,253 @@
+---
+title: CSS Variables
+description: Customize React Data Grid appearance using CSS custom properties
+---
+
+The DataGrid exposes CSS variables that allow you to customize colors, typography, borders, and other visual properties without writing custom CSS.
+
+## Available CSS Variables
+
+All CSS variables are scoped to the `.rdg` class and use the `--rdg-` prefix.
+
+### Selection
+
+Control the appearance of selected cells:
+
+```css
+.rdg {
+  --rdg-selection-width: 2px;
+  --rdg-selection-color: hsl(207, 75%, 66%);
+}
+```
+
+### Typography
+
+Customize text appearance:
+
+```css
+.rdg {
+  --rdg-font-size: 14px;
+}
+```
+
+### Colors
+
+Core colors using `light-dark()` for automatic theme switching:
+
+```css
+.rdg {
+  --rdg-color: light-dark(#000, #ddd);
+  --rdg-background-color: light-dark(hsl(0deg 0% 100%), hsl(0deg 0% 13%));
+}
+```
+
+### Header
+
+Customize header row appearance:
+
+```css
+.rdg {
+  --rdg-header-background-color: light-dark(hsl(0deg 0% 97.5%), hsl(0deg 0% 10.5%));
+  --rdg-header-draggable-background-color: light-dark(hsl(0deg 0% 90.5%), hsl(0deg 0% 17.5%));
+}
+```
+
+### Rows
+
+Control row colors for different states:
+
+```css
+.rdg {
+  --rdg-row-hover-background-color: light-dark(hsl(0deg 0% 96%), hsl(0deg 0% 9%));
+  --rdg-row-selected-background-color: light-dark(hsl(207deg 76% 92%), hsl(207deg 76% 42%));
+  --rdg-row-selected-hover-background-color: light-dark(hsl(207deg 76% 88%), hsl(207deg 76% 38%));
+}
+```
+
+### Borders
+
+Customize borders throughout the grid:
+
+```css
+.rdg {
+  --rdg-border-width: 1px;
+  --rdg-border-color: light-dark(#ddd, #444);
+  --rdg-summary-border-width: calc(var(--rdg-border-width) * 2);
+  --rdg-summary-border-color: light-dark(#aaa, #555);
+}
+```
+
+### Checkboxes
+
+Style selection checkboxes:
+
+```css
+.rdg {
+  --rdg-checkbox-focus-color: hsl(207deg 100% 69%);
+}
+```
+
+## Usage Examples
+
+### Basic Customization
+
+Customize a specific grid instance:
+
+```tsx
+import 'react-data-grid/lib/styles.css';
+import { DataGrid } from 'react-data-grid';
+
+function MyGrid() {
+  return (
+    <DataGrid
+      className="my-custom-grid"
+      columns={columns}
+      rows={rows}
+    />
+  );
+}
+```
+
+```css
+.my-custom-grid {
+  --rdg-background-color: #f0f0f0;
+  --rdg-selection-color: #ff6b6b;
+  --rdg-font-size: 16px;
+}
+```
+
+<Info>
+CSS variables are inherited, so you can set them on a parent element or the grid itself.
+</Info>
+
+### Brand Color Theme
+
+Create a branded theme using your company colors:
+
+```css
+.branded-grid {
+  --rdg-selection-color: var(--brand-primary);
+  --rdg-row-selected-background-color: light-dark(
+    hsl(var(--brand-hue) 76% 92%),
+    hsl(var(--brand-hue) 76% 42%)
+  );
+  --rdg-checkbox-focus-color: var(--brand-primary);
+}
+```
+
+### High Contrast Theme
+
+Increase contrast for better accessibility:
+
+```css
+.high-contrast-grid {
+  --rdg-border-width: 2px;
+  --rdg-border-color: light-dark(#000, #fff);
+  --rdg-selection-width: 3px;
+  --rdg-color: light-dark(#000, #fff);
+}
+```
+
+### Compact Grid
+
+Reduce spacing and font size for a denser layout:
+
+```tsx
+<DataGrid
+  className="compact-grid"
+  columns={columns}
+  rows={rows}
+  rowHeight={30}
+  headerRowHeight={32}
+/>
+```
+
+```css
+.compact-grid {
+  --rdg-font-size: 13px;
+  --rdg-border-width: 1px;
+}
+```
+
+<Tip>
+Combine CSS variables with the `rowHeight` and `headerRowHeight` props for complete control over grid density.
+</Tip>
+
+## Global Styling
+
+To apply customizations to all grids in your application, target the `.rdg` class globally:
+
+```css
+/* styles.css */
+.rdg {
+  --rdg-font-size: 15px;
+  --rdg-selection-color: hsl(280, 75%, 66%);
+}
+```
+
+```tsx
+import 'react-data-grid/lib/styles.css';
+import './styles.css'; // Import after default styles
+```
+
+## Dynamic Theming
+
+Use inline styles to change variables dynamically:
+
+```tsx
+import { DataGrid } from 'react-data-grid';
+
+function DynamicGrid({ accentColor }: { accentColor: string }) {
+  return (
+    <DataGrid
+      columns={columns}
+      rows={rows}
+      style={{
+        '--rdg-selection-color': accentColor,
+        '--rdg-checkbox-focus-color': accentColor
+      } as React.CSSProperties}
+    />
+  );
+}
+```
+
+<Info>
+When using TypeScript, you may need to cast the style object to `React.CSSProperties` to include custom CSS variables.
+</Info>
+
+## Complete Variable Reference
+
+Here's the complete list of available CSS variables with their default values:
+
+```css
+.rdg {
+  /* Selection */
+  --rdg-selection-width: 2px;
+  --rdg-selection-color: hsl(207, 75%, 66%);
+
+  /* Typography */
+  --rdg-font-size: 14px;
+
+  /* Colors */
+  --rdg-color: light-dark(#000, #ddd);
+  --rdg-background-color: light-dark(hsl(0deg 0% 100%), hsl(0deg 0% 13%));
+
+  /* Header */
+  --rdg-header-background-color: light-dark(hsl(0deg 0% 97.5%), hsl(0deg 0% 10.5%));
+  --rdg-header-draggable-background-color: light-dark(hsl(0deg 0% 90.5%), hsl(0deg 0% 17.5%));
+
+  /* Rows */
+  --rdg-row-hover-background-color: light-dark(hsl(0deg 0% 96%), hsl(0deg 0% 9%));
+  --rdg-row-selected-background-color: light-dark(hsl(207deg 76% 92%), hsl(207deg 76% 42%));
+  --rdg-row-selected-hover-background-color: light-dark(hsl(207deg 76% 88%), hsl(207deg 76% 38%));
+
+  /* Borders */
+  --rdg-border-width: 1px;
+  --rdg-border-color: light-dark(#ddd, #444);
+  --rdg-summary-border-width: calc(var(--rdg-border-width) * 2);
+  --rdg-summary-border-color: light-dark(#aaa, #555);
+
+  /* Checkboxes */
+  --rdg-checkbox-focus-color: hsl(207deg 100% 69%);
+}
+```

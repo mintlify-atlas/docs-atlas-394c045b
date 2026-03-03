@@ -1,0 +1,158 @@
+---
+title: Installation
+description: Install React Data Grid using your favorite package manager
+---
+
+# Installation
+
+React Data Grid is available as an npm package and can be installed using any modern package manager.
+
+## Prerequisites
+
+<Note>
+  React Data Grid requires **React 19.2+** and **react-dom 19.2+** as peer dependencies.
+</Note>
+
+Before installing, ensure your project meets these requirements:
+
+- React ≥ 19.2
+- react-dom ≥ 19.2
+- A modern bundler (Vite, webpack, etc.)
+
+## Package Installation
+
+Install `react-data-grid` using your preferred package manager:
+
+<CodeGroup>
+```bash npm
+npm install react-data-grid
+```
+
+```bash yarn
+yarn add react-data-grid
+```
+
+```bash pnpm
+pnpm add react-data-grid
+```
+
+```bash bun
+bun add react-data-grid
+```
+</CodeGroup>
+
+## Import Styles
+
+After installation, import the default stylesheet in your application entry point:
+
+```tsx
+import 'react-data-grid/lib/styles.css';
+```
+
+<Tip>
+  The stylesheet includes both light and dark mode themes that automatically adapt based on the user's system preference via CSS `color-scheme`.
+</Tip>
+
+## Module Format
+
+React Data Grid is published as **ECMAScript modules** for optimal tree-shaking and compatibility with:
+
+- Modern bundlers (Vite, webpack, Rollup, etc.)
+- Server-side rendering (Next.js, Remix, etc.)
+- Evergreen browsers
+
+## Vite Configuration (Important)
+
+<Warning>
+  If you're using **Vite 8+**, you need to adjust the CSS minification settings due to a [bug in lightningcss](https://github.com/parcel-bundler/lightningcss/issues/873) with `light-dark()` syntax.
+</Warning>
+
+Add one of these configurations to your `vite.config.ts`:
+
+<CodeGroup>
+```ts Use esbuild for CSS
+// vite.config.ts
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  build: {
+    cssMinify: 'esbuild'
+  }
+});
+```
+
+```ts Update CSS target
+// vite.config.ts
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  build: {
+    cssTarget: 'esnext'
+  }
+});
+```
+</CodeGroup>
+
+## Verify Installation
+
+Create a simple test component to verify the installation:
+
+```tsx App.tsx
+import 'react-data-grid/lib/styles.css';
+import { DataGrid, type Column } from 'react-data-grid';
+
+interface Row {
+  id: number;
+  name: string;
+}
+
+const columns: readonly Column<Row>[] = [
+  { key: 'id', name: 'ID' },
+  { key: 'name', name: 'Name' }
+];
+
+const rows: readonly Row[] = [
+  { id: 1, name: 'Test' }
+];
+
+function App() {
+  return <DataGrid columns={columns} rows={rows} />;
+}
+
+export default App;
+```
+
+If you see a data grid with one row, the installation is successful!
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Build your first functional data grid
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/datagrid">
+    Explore all available props and options
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+### TypeScript Errors
+
+If you encounter TypeScript errors, ensure you have the latest type definitions:
+
+```bash
+npm install --save-dev @types/react @types/react-dom
+```
+
+### CSS Not Loading
+
+Make sure you've imported the stylesheet before using the DataGrid component:
+
+```tsx
+import 'react-data-grid/lib/styles.css';
+```
+
+### Bundle Size Issues
+
+React Data Grid has **zero dependencies** and uses tree-shaking. Make sure your bundler supports ES modules and has tree-shaking enabled.

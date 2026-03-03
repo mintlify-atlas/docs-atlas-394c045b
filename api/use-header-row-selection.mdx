@@ -1,0 +1,87 @@
+---
+title: useHeaderRowSelection
+description: Hook for managing header row selection state in custom header cell renderers
+---
+
+## Overview
+
+The `useHeaderRowSelection` hook is used within custom header cell renderers to implement custom "select all" functionality. It provides access to the selection state across all rows and a callback to change the selection.
+
+## Signature
+
+```tsx
+function useHeaderRowSelection(): {
+  isIndeterminate: boolean;
+  isRowSelected: boolean;
+  onRowSelectionChange: (event: SelectHeaderRowEvent) => void;
+}
+```
+
+## Return Value
+
+<ResponseField name="isIndeterminate" type="boolean">
+  Whether some (but not all) rows are selected. Use this for the indeterminate state of a checkbox.
+</ResponseField>
+
+<ResponseField name="isRowSelected" type="boolean">
+  Whether all rows are selected.
+</ResponseField>
+
+<ResponseField name="onRowSelectionChange" type="(event: SelectHeaderRowEvent) => void">
+  Callback function to change the selection state of all rows.
+</ResponseField>
+
+## SelectHeaderRowEvent Type
+
+```tsx
+interface SelectHeaderRowEvent {
+  checked: boolean;
+}
+```
+
+<ParamField path="checked" type="boolean" required>
+  Whether all rows should be selected (true) or deselected (false).
+</ParamField>
+
+## Usage
+
+This hook must be called within a custom header cell renderer. It's commonly used with `useLayoutEffect` to handle the indeterminate state of checkboxes.
+
+```tsx
+import { useLayoutEffect, useRef } from 'react';
+import { useHeaderRowSelection } from 'react-data-grid';
+
+function CustomHeaderCell() {
+  const { isIndeterminate, isRowSelected, onRowSelectionChange } = useHeaderRowSelection();
+  const checkboxRef = useRef<HTMLInputElement>(null);
+
+  useLayoutEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.indeterminate = isIndeterminate && !isRowSelected;
+    }
+  }, [isIndeterminate, isRowSelected]);
+
+  return (
+    <input
+      ref={checkboxRef}
+      type="checkbox"
+      checked={isRowSelected}
+      onChange={(event) => onRowSelectionChange({ checked: event.target.checked })}
+    />
+  );
+}
+```
+
+## Error Handling
+
+The hook will throw an error if used outside of a header cell renderer:
+
+```
+Error: useHeaderRowSelection must be used within renderHeaderCell
+```
+
+## Related
+
+- [useRowSelection](/api/use-row-selection) - Hook for row selection in cell renderers
+- [SelectColumn](/api/select-column) - Pre-configured column for row selection
+- [renderCheckbox](/api/render-checkbox) - Default checkbox renderer
